@@ -66,6 +66,11 @@ pub fn uin_from_cookie(cookie: &str) -> String {
     "0".into()
 }
 
+fn js_to_int32(v: f64) -> i32 {
+    let m = v.rem_euclid(4294967296.0);
+    if m >= 2147483648.0 { (m - 4294967296.0) as i32 } else { m as i32 }
+}
+
 pub fn gtk_from_cookie(cookie: &str) -> i64 {
     for name in [
         "qqmusic_key",
@@ -79,11 +84,14 @@ pub fn gtk_from_cookie(cookie: &str) -> i64 {
             let rest = &cookie[idx + pat.len()..];
             let end = rest.find(';').unwrap_or(rest.len());
             let skey = &rest[..end];
-            let mut hash: i64 = 5381;
+            // JS semantics: (hash << 5) ToInt32s first, then adds in float64.
+            // i64 arithmetic overflows (panics in debug) and diverges from TS.
+            let mut hash: f64 = 5381.0;
             for ch in skey.chars() {
-                hash += (hash << 5) + ch as i64;
+                let shifted = ((js_to_int32(hash) as u32) << 5) as i32;
+                hash += shifted as f64 + ch as u32 as f64;
             }
-            return hash & 0x7fffffff;
+            return (js_to_int32(hash) & 0x7fffffff) as i64;
         }
     }
     5381

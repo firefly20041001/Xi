@@ -43,17 +43,17 @@ fn thumbnail_update_cover(_cover_url: String) {
 // ---------- Lyrics window ----------
 
 #[tauri::command]
-fn lyrics_window_show(app: tauri::AppHandle) {
+async fn lyrics_window_show(app: tauri::AppHandle) {
     lyrics_win::show(&app);
 }
 
 #[tauri::command]
-fn lyrics_window_hide(app: tauri::AppHandle) {
+async fn lyrics_window_hide(app: tauri::AppHandle) {
     lyrics_win::hide(&app);
 }
 
 #[tauri::command]
-fn lyrics_window_toggle(app: tauri::AppHandle) {
+async fn lyrics_window_toggle(app: tauri::AppHandle) {
     lyrics_win::toggle(&app);
 }
 

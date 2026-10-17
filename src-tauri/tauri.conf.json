@@ -5,7 +5,7 @@
   "identifier": "com.yachiyo.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://localhost:5180",
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
@@ -18,7 +18,8 @@
         "height": 900,
         "minWidth": 1000,
         "minHeight": 700,
-        "center": true
+        "center": true,
+        "additionalBrowserArgs": "--autoplay-policy=no-user-gesture-required --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"
       }
     ],
     "security": {

@@ -48,7 +48,8 @@ fn create(app: &AppHandle) -> tauri::Result<()> {
     .skip_taskbar(true)
     .resizable(!locked)
     .shadow(false)
-    .visible(true);
+    .visible(true)
+    .additional_browser_args("--autoplay-policy=no-user-gesture-required --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection");
 
     // Restore persisted position
     if let (Some(x), Some(y)) = (
@@ -89,7 +90,9 @@ pub fn show(app: &AppHandle) {
         let _ = w.show();
         return;
     }
-    let _ = create(app);
+    if let Err(e) = create(app) {
+        eprintln!("[LyricsWin] create failed: {e:#}");
+    }
 }
 
 pub fn hide(app: &AppHandle) {

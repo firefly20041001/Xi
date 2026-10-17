@@ -1,0 +1,253 @@
+/* ========================================
+   Sidebar Styles
+   Navigation sidebar with glass effect
+   ======================================== */
+
+.sidebar {
+  width: 240px;
+  /* End above the fixed player bar (80px) so the bottom controls
+     (theme / collapse) are not covered by it */
+  height: calc(100% - 80px);
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  padding-top: 16px;
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border-right: 1px solid var(--border-color-light);
+  /* No CSS width transition here: framer-motion drives the collapse
+     animation, a CSS transition would fight it frame by frame.
+     Labels stay mounted and are clipped here while width animates */
+  overflow: hidden;
+  z-index: 20;
+}
+
+/* Collapsed rail: 88px wide, icons centered. Centering is done with
+   animated padding (not align/justify flips) so nothing jumps when the
+   class flips at animation start. gap must go to 0 when the label is
+   hidden — a zero-width label still occupies the gap, which would
+   flex-shrink the icon */
+.sidebar-collapsed .sidebar-logo {
+  padding: 8px 16px;
+  gap: 0;
+}
+
+/* Logo */
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  margin-bottom: 24px;
+  transition: padding 0.3s ease;
+}
+
+.sidebar-logo img {
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  transition: max-width 0.25s ease, opacity 0.2s ease;
+}
+
+.sidebar-collapsed .logo-text {
+  max-width: 0;
+  opacity: 0;
+}
+
+/* Navigation */
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.nav-item svg {
+  flex-shrink: 0;
+}
+
+.nav-item:hover {
+  background: var(--glass-bg);
+  color: var(--text-primary);
+}
+
+.nav-item-active {
+  background: var(--glass-bg-heavy);
+  color: var(--text-primary);
+}
+
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: #DE89A8;
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 8px rgba(222, 137, 168, 0.4);
+}
+
+.nav-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 160px;
+  transition: max-width 0.25s ease, opacity 0.2s ease;
+}
+
+.sidebar-collapsed .nav-label {
+  max-width: 0;
+  opacity: 0;
+}
+
+.sidebar-collapsed .nav-item {
+  /* (64 inner - 20 icon) / 2 = 22px left padding centers the icon */
+  padding: 10px 22px 10px 22px;
+  gap: 0;
+}
+
+/* Account Status */
+.sidebar-accounts {
+  padding: 12px 0;
+  border-top: 1px solid var(--border-color-light);
+  margin-top: 8px;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-collapsed .sidebar-accounts {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.account-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.account-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-quaternary);
+}
+
+.account-dot-active.netease {
+  background: #e60026;
+  box-shadow: 0 0 6px rgba(230, 0, 38, 0.5);
+}
+
+.account-dot-active.qqmusic {
+  background: #31c27c;
+  box-shadow: 0 0 6px rgba(49, 194, 124, 0.5);
+}
+
+/* Bottom Controls */
+.sidebar-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--border-color-light);
+}
+
+.sidebar-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sidebar-btn:hover {
+  background: var(--glass-bg);
+  color: var(--text-primary);
+}
+
+.sidebar-collapse-btn {
+  margin-left: auto;
+  width: auto;
+  gap: 6px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sidebar-btn-label {
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  transition: max-width 0.25s ease, opacity 0.2s ease;
+}
+
+.sidebar-collapsed .sidebar-btn-label {
+  max-width: 0;
+  opacity: 0;
+}
+
+.sidebar-collapsed .sidebar-bottom {
+  flex-direction: column;
+  align-items: center;
+}
+
+.sidebar-collapsed .sidebar-collapse-btn {
+  margin-left: 0;
+  /* Match the theme button: clean 36px icon button once the label has
+     collapsed away (box shrinks smoothly with the max-width animation) */
+  padding: 0;
+  gap: 0;
+  min-width: 36px;
+  justify-content: center;
+}

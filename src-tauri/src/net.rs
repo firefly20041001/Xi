@@ -1,0 +1,180 @@
+use anyhow::{anyhow, Result};
+use reqwest::{Client, Method};
+use serde_json::Value;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+pub const UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+pub fn new_client() -> Client {
+    Client::builder()
+        .user_agent(UA)
+        
+        .build()
+        .expect("failed to build HTTP client")
+}
+
+pub fn now_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
+pub fn netease_headers(cookie: &str) -> Vec<(&'static str, String)> {
+    let mut h: Vec<(&'static str, String)> = vec![
+        ("Referer", "https://music.163.com/".into()),
+        ("Origin", "https://music.163.com".into()),
+    ];
+    if !cookie.is_empty() {
+        h.push(("Cookie", cookie.to_string()));
+    }
+    h
+}
+
+pub fn qq_headers(cookie: &str) -> Vec<(&'static str, String)> {
+    let mut h: Vec<(&'static str, String)> = vec![
+        ("Referer", "https://y.qq.com/".into()),
+        ("Origin", "https://y.qq.com".into()),
+    ];
+    if !cookie.is_empty() {
+        h.push(("Cookie", cookie.to_string()));
+    }
+    h
+}
+
+pub fn uin_from_cookie(cookie: &str) -> String {
+    for name in [
+        "uin",
+        "qqmusic_uin",
+        "p_uin",
+        "pt2gguin",
+        "loginUin",
+        "wxuin",
+    ] {
+        // name=o123 or name=123
+        let patterns = [format!("{}=o", name), format!("{}=", name)];
+        for p in &patterns {
+            if let Some(idx) = cookie.to_lowercase().find(&p.to_lowercase()) {
+                let rest = &cookie[idx + p.len()..];
+                let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+                if !digits.is_empty() {
+                    return digits;
+                }
+            }
+        }
+    }
+    "0".into()
+}
+
+pub fn gtk_from_cookie(cookie: &str) -> i64 {
+    for name in [
+        "qqmusic_key",
+        "qm_keyst",
+        "music_key",
+        "p_skey",
+        "skey",
+    ] {
+        let pat = format!("{}=", name);
+        if let Some(idx) = cookie.find(&pat) {
+            let rest = &cookie[idx + pat.len()..];
+            let end = rest.find(';').unwrap_or(rest.len());
+            let skey = &rest[..end];
+            let mut hash: i64 = 5381;
+            for ch in skey.chars() {
+                hash += (hash << 5) + ch as i64;
+            }
+            return hash & 0x7fffffff;
+        }
+    }
+    5381
+}
+
+pub async fn fetch_json(
+    client: &Client,
+    url: &str,
+    method: Method,
+    headers: Vec<(&'static str, String)>,
+    body: Option<Value>,
+    timeout_secs: u64,
+) -> Result<Value> {
+    let mut req = client
+        .request(method, url)
+        .timeout(Duration::from_secs(timeout_secs));
+    for (k, v) in headers {
+        req = req.header(k, v);
+    }
+    if let Some(b) = body {
+        req = req.json(&b);
+    }
+    let resp = req.send().await?;
+    let status = resp.status();
+    let text = resp.text().await?;
+    if !status.is_success() {
+        return Err(anyhow!("HTTP {}", status));
+    }
+    let trimmed = text.trim_start();
+    if trimmed.starts_with("<!DOCTYPE") || trimmed.starts_with("<html") {
+        return Err(anyhow!("API returned HTML instead of JSON"));
+    }
+    Ok(serde_json::from_str(&text)?)
+}
+
+pub async fn fetch_text(
+    client: &Client,
+    url: &str,
+    headers: Vec<(&'static str, String)>,
+    timeout_secs: u64,
+) -> Result<String> {
+    let mut req = client
+        .get(url)
+        .timeout(Duration::from_secs(timeout_secs));
+    for (k, v) in headers {
+        req = req.header(k, v);
+    }
+    let resp = req.send().await?;
+    let status = resp.status();
+    let text = resp.text().await?;
+    if !status.is_success() {
+        return Err(anyhow!("HTTP {}", status));
+    }
+    Ok(text)
+}
+
+/// Navigate a JSON value by pointer segments, e.g. jget(&v, &["result", "songs"])
+pub fn jget<'a>(v: &'a Value, path: &[&str]) -> Option<&'a Value> {
+    let mut cur = v;
+    for seg in path {
+        cur = cur.get(seg)?;
+    }
+    Some(cur)
+}
+
+pub fn jstr(v: &Value, key: &str) -> String {
+    v.get(key)
+        .and_then(|x| x.as_str())
+        .map(String::from)
+        .unwrap_or_default()
+}
+
+pub fn jstr_or(v: &Value, keys: &[&str]) -> String {
+    for k in keys {
+        if let Some(s) = v.get(k).and_then(|x| x.as_str()) {
+            return s.to_string();
+        }
+    }
+    String::new()
+}
+
+pub fn ji64(v: &Value, keys: &[&str]) -> i64 {
+    for k in keys {
+        if let Some(n) = v.get(k) {
+            if let Some(i) = n.as_i64() {
+                return i;
+            }
+            if let Some(f) = n.as_f64() {
+                return f as i64;
+            }
+        }
+    }
+    0
+}

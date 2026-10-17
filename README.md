@@ -48,3 +48,10 @@ src-tauri/        Rust 后端
 - 窗口缩略图工具栏(Windows Thumbnail Toolbar)Tauri 不支持,命令保留为空实现
 - 未移植:二维码登录模态(Electron 版中本就未被引用)
 - 用户数据目录:`%APPDATA%\com.yachiyo.app`(与 Electron 版的 `%APPDATA%\yachiyo` 隔离,首次使用需重新登录账号)
+
+## 已知差异(移植差距清单)
+
+- Windows 缩略图工具栏(Tumbnail Toolbar)为 Electron 专属,Tauri 无对应 API,`thumbnail_update_cover` 保留为空实现
+- 二维码登录模态未移植(Electron 版中该组件本就未被引用,已随移除)
+- QQ 音乐搜索接口当前要求登录态(无 cookie 返回空结果),与最新 Electron 版行为一致;登录一次后正常
+- 数据目录独立于 Electron 版,首次使用需重新登录音乐平台账号

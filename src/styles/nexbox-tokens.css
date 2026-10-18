@@ -1,0 +1,169 @@
+/* ============================================================
+   NexBox 设计令牌 — 从 muliuawa/nexbox 源码提取(GPL-3.0)
+   依据:
+   - src/components/ui/main-layout.tsx(背景层/滚动条/内容边距)
+   - src/components/ui/sidebar.tsx(玻璃配方/导航 48px/active 色块)
+   - src/components/ui/title-bar.tsx(窗口圆钮 36px,白 .8/黑 .8 底)
+   - src/components/ui/global-search.tsx(搜索胶囊配色)
+   - src/contexts/theme-color-context.tsx(强调色状态系统)
+   - src/contexts/background-context.tsx(玻璃参数的 tooltip 映射)
+   - src/lib/theme.ts / src/index.css
+
+   仅新增 --nbf-* 令牌,不与正式样式变量(–-bg-*/--nb-*)重复定义。
+   .nb-scope 作用域允许展示页独立切换浅色/深色,不影响正式页面。
+   ============================================================ */
+
+/* ---------- 亮色方案(默认) ---------- */
+.nb-scope {
+  /* 页面与面板 */
+  --nbf-page-bg: #fafafa;
+  --nbf-panel-solid: rgba(255, 255, 255, 1);
+  --nbf-panel-solid-soft: rgba(255, 255, 255, 0.9);
+  --nbf-glass-bg: rgba(255, 255, 255, 0.25);
+  --nbf-glass-bg-strong: rgba(255, 255, 255, 0.55);
+  --nbf-glass-border: rgba(255, 255, 255, 0.2);
+  --nbf-glass-border-solid: rgba(200, 200, 200, 0.3);
+  --nbf-glow: rgba(255, 255, 255, 0.8);
+
+  /* 文字 */
+  --nbf-fg: #1a202c;
+  --nbf-fg-input: #4a5568;
+  --nbf-fg-muted: #718096;
+  --nbf-fg-placeholder: #a0aec0;
+  --nbf-fg-window-icon: rgba(0, 0, 0, 0.75);
+  --nbf-fg-window-icon-hover: gray.800;
+
+  /* 强调色状态系统(theme-color-context 语义) */
+  --nbf-accent: var(--nb-accent, #98ddd0);
+  --nbf-accent-hover: color-mix(in srgb, var(--nbf-accent) 20%, transparent);
+  --nbf-accent-hover-dark: color-mix(in srgb, var(--nbf-accent) 30%, transparent);
+  --nbf-accent-active: var(--nbf-accent);
+  --nbf-accent-border: color-mix(in srgb, var(--nbf-accent) 40%, transparent);
+  --nbf-accent-contrast: #1a1a1a;
+
+  /* 窗口控制 */
+  --nbf-win-bg: rgba(255, 255, 255, 0.8);
+  --nbf-win-icon: rgba(0, 0, 0, 0.6);
+  --nbf-win-icon-hover: #1a202c;
+  --nbf-win-hover-bg: #edf2f7;
+  --nbf-close-icon-hover: #c53030;
+  --nbf-close-hover-bg: #fff5f5;
+
+  /* 输入与结果 */
+  --nbf-input-bg: var(--nbf-glass-bg);
+  --nbf-input-bg-off: rgba(255, 255, 255, 0.9);
+  --nbf-input-border: var(--nbf-glass-border);
+  --nbf-input-border-off: var(--nbf-glass-border-solid);
+  --nbf-result-bg: #f7fafc;
+  --nbf-result-hover: #edf2f7;
+
+  /* 形状 */
+  --nbf-radius-panel: 16px; /* Chakra xl,sidebar/卡片 */
+  --nbf-radius-card: 12px;
+  --nbf-radius-full: 999px;
+
+  /* 尺寸 */
+  --nbf-nav-h: 48px;
+  --nbf-win-btn: 36px;
+
+  /* 动效(main-layout/sidebar/title-bar 实测值) */
+  --nbf-dur-fast: 0.15s;
+  --nbf-dur-base: 0.3s;
+  --nbf-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --nbf-blur-glass: 18px;
+  --nbf-blur-tooltip: blur(12px) saturate(1.4);
+
+  /* 语义色(NexBox title-bar 关闭钮/通用反馈) */
+  --nbf-danger: #c53030;
+  --nbf-danger-bg: #fff5f5;
+}
+
+/* ---------- 深色方案 ---------- */
+.nb-scope[data-nb-scheme='dark'] {
+  --nbf-page-bg: #0a0a0a;
+  --nbf-panel-solid: rgba(17, 17, 17, 1);
+  --nbf-panel-solid-soft: rgba(17, 17, 17, 0.95);
+  --nbf-glass-bg: rgba(0, 0, 0, 0.25);
+  --nbf-glass-bg-strong: rgba(0, 0, 0, 0.4);
+  --nbf-glass-border: rgba(255, 255, 255, 0.1);
+  --nbf-glass-border-solid: rgba(51, 51, 51, 0.5);
+  --nbf-glow: rgba(255, 255, 255, 0.5);
+
+  --nbf-fg: #e2e2e8;
+  --nbf-fg-input: #ffffff;
+  --nbf-fg-muted: #a0aec0;
+  --nbf-fg-placeholder: #a0aec0;
+  --nbf-fg-window-icon: rgba(255, 255, 255, 0.8);
+  --nbf-fg-window-icon-hover: gray;
+
+  --nbf-accent-hover: color-mix(in srgb, var(--nbf-accent) 30%, transparent);
+  --nbf-accent-contrast: #1a1a1a;
+
+  --nbf-win-bg: rgba(0, 0, 0, 0.8);
+  --nbf-win-icon: rgba(255, 255, 255, 0.8);
+  --nbf-win-icon-hover: #e2e2e8;
+  --nbf-win-hover-bg: #2d3748;
+  --nbf-close-icon-hover: #f56565;
+  --nbf-close-hover-bg: #742a2a;
+
+  --nbf-input-bg: var(--nbf-glass-bg);
+  --nbf-input-bg-off: rgba(17, 17, 17, 0.95);
+  --nbf-result-bg: #1a202c;
+  --nbf-result-hover: #2d3748;
+}
+
+/* 展示页容器基础(正式页面不加载本文件) */
+.nb-scope {
+  background: var(--nbf-page-bg);
+  color: var(--nbf-fg);
+  font-family: var(--app-font-family, Inter), system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+/* 隐藏滚动条但保留滚动(NexBox index.css 行为) */
+.nb-scope * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.nb-scope *::-webkit-scrollbar {
+  display: none;
+}
+.nb-scope .nb-scrollbar-visible {
+  overflow-y: auto;
+}
+.nb-scope .nb-scrollbar-visible::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+}
+.nb-scope .nb-scrollbar-visible::-webkit-scrollbar-thumb {
+  background: var(--nbf-accent);
+  border-radius: 3px;
+  min-height: 40px;
+}
+
+/* 玻璃面板基元 */
+.nb-glass-panel {
+  background: var(--nbf-glass-bg);
+  border: 1px solid var(--nbf-glass-border);
+  backdrop-filter: blur(var(--nbf-blur-glass)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--nbf-blur-glass)) saturate(1.4);
+}
+.nb-glass-panel-strong {
+  background: var(--nbf-glass-bg-strong);
+  border: 1px solid var(--nbf-glass-border);
+  backdrop-filter: blur(var(--nbf-blur-glass)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--nbf-blur-glass)) saturate(1.4);
+}
+
+/* 无 backdrop-filter 回退:实底面板 */
+.nb-no-backdrop .nb-glass-panel,
+.nb-no-backdrop .nb-glass-panel-strong {
+  background: var(--nbf-panel-solid);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* 焦点环 */
+.nb-scope :focus-visible {
+  outline: 2px solid var(--nbf-accent);
+  outline-offset: 2px;
+}

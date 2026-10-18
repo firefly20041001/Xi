@@ -173,3 +173,12 @@
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 20px;
 }
+
+/* PlaylistPage/LibraryPage:页头透明融入壁纸(NexBox 轻量风格) */
+.playlist-page .page-header,
+.library-page .page-header {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: none;
+}

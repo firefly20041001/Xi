@@ -710,8 +710,9 @@
 }
 
 .tab-active {
-  border-color: var(--accent-primary) !important;
-  color: var(--accent-primary);
+  border-color: var(--nb-accent) !important;
+  color: var(--nb-accent);
+  background: var(--nb-accent-hover);
 }
 
 .library-accounts {

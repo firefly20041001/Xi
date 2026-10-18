@@ -1,3 +1,4 @@
+import { AppearanceGlassSettings } from '../components/AppearanceGlassSettings'
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Moon, Sun, Monitor, Info, X, Type, Eye, EyeOff, Lock, Unlock, Keyboard, RotateCcw, Palette, Volume2, Speaker, RefreshCw } from 'lucide-react'
@@ -268,6 +269,7 @@ export function SettingsPage() {
 
         {/* Appearance */}
         <GlassPanel intensity="medium" className="settings-section">
+          <AppearanceGlassSettings />
           <h2 className="settings-section-title"><Monitor size={20} /> 外观</h2>
           <div className="settings-group">
             <div className="setting-item">

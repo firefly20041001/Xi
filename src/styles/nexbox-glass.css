@@ -1,0 +1,159 @@
+/* ============================================================
+   NexBox 液态玻璃皮肤 — 移植自 muliuawa/nexbox (GPL-3.0)
+   壁纸背景 + 磨砂玻璃面板 + 可换强调色。
+   在既有布局变量体系上做覆盖,不改变布局结构。
+   ============================================================ */
+
+:root {
+  --nb-accent: #ff214f;
+  --nb-accent-hover: #ff4670;
+  --nb-accent-soft: rgba(255, 33, 79, 0.12);
+  --nb-glass-blur: 18px;
+  --nb-wallpaper-blur: 0px;
+  --nb-glass: rgba(255, 255, 255, 0.25);
+  --nb-glass-strong: rgba(255, 255, 255, 0.45);
+  --nb-glass-border: rgba(255, 255, 255, 0.5);
+  --nb-glow: rgba(255, 255, 255, 0.8);
+}
+
+:root[data-theme='dark'] {
+  --nb-glass: rgba(0, 0, 0, 0.25);
+  --nb-glass-strong: rgba(0, 0, 0, 0.4);
+  --nb-glass-border: rgba(255, 255, 255, 0.1);
+  --nb-glow: rgba(255, 255, 255, 0.5);
+}
+
+/* ---------- 壁纸层(由 appearanceStore 通过内联样式驱动) ---------- */
+
+.app-background {
+  position: fixed !important;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(135deg, #ffd9e8 0%, #c7d2fe 45%, #bae6fd 100%) !important;
+  filter: blur(var(--nb-wallpaper-blur));
+  transform: scale(1.04);
+  transition: filter 0.3s ease;
+}
+
+:root[data-theme='dark'] .app-background {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+}
+
+/* ---------- 玻璃面板通用类 ---------- */
+
+.nb-glass {
+  background: var(--nb-glass) !important;
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4) !important;
+  border: 1px solid var(--nb-glass-border) !important;
+}
+
+/* ---------- 全局变量覆盖:把旧主题映射到玻璃配方 ---------- */
+
+:root,
+:root[data-theme='light'],
+:root[data-theme='dark'] {
+  --sidebar-bg: var(--nb-glass);
+  --player-bg: var(--nb-glass-strong);
+  --glass-bg: var(--nb-glass);
+  --glass-bg-light: var(--nb-glass);
+  --glass-bg-heavy: var(--nb-glass-strong);
+  --glass-border: var(--nb-glass-border);
+  --glass-border-light: var(--nb-glass-border);
+  --border-color: var(--nb-glass-border);
+  --border-color-light: var(--nb-glass-border);
+  --accent-primary: var(--nb-accent);
+  --accent-secondary: var(--nb-accent-hover);
+  --accent-hover: var(--nb-accent-hover);
+  --accent-pressed: var(--nb-accent);
+}
+
+:root[data-theme='light'] {
+  --text-primary: #1a1a1a;
+  --text-secondary: rgba(0, 0, 0, 0.72);
+  --text-tertiary: rgba(0, 0, 0, 0.5);
+  --bg-primary: transparent;
+  --bg-secondary: var(--nb-glass);
+  --bg-tertiary: var(--nb-glass-strong);
+  --bg-elevated: var(--nb-glass-strong);
+  --shadow-sm: 0 1px 3px rgba(31, 38, 135, 0.08);
+  --shadow-md: 0 4px 14px rgba(31, 38, 135, 0.1);
+  --shadow-lg: 0 8px 28px rgba(31, 38, 135, 0.14);
+}
+
+:root[data-theme='dark'] {
+  --text-primary: #f0f0f0;
+  --text-secondary: rgba(255, 255, 255, 0.78);
+  --text-tertiary: rgba(255, 255, 255, 0.55);
+  --bg-primary: transparent;
+  --bg-secondary: var(--nb-glass);
+  --bg-tertiary: var(--nb-glass-strong);
+  --bg-elevated: var(--nb-glass-strong);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- 侧栏:浮动玻璃条(NexBox 形态) ---------- */
+
+.sidebar {
+  margin: 14px 6px 14px 14px;
+  border-radius: 24px !important;
+  background: var(--nb-glass) !important;
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4) !important;
+  border: 1px solid var(--nb-glass-border) !important;
+  box-shadow: var(--shadow-md);
+  height: calc(100% - 108px) !important;
+}
+
+.nav-item-active {
+  background: var(--nb-accent-soft) !important;
+  color: var(--nb-accent) !important;
+}
+
+.nav-item-active::before {
+  background: var(--nb-accent) !important;
+  box-shadow: 0 0 8px var(--nb-accent-soft) !important;
+}
+
+/* ---------- 播放栏:玻璃 + 强调色播放键 ---------- */
+
+.player-bar {
+  background: var(--nb-glass-strong) !important;
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4) !important;
+}
+
+.play-btn {
+  background: var(--nb-accent) !important;
+}
+
+.play-btn:hover {
+  background: var(--nb-accent-hover) !important;
+}
+
+/* ---------- 顶栏 / 搜索:玻璃胶囊 + 强调色搜索按钮 ---------- */
+
+.search-bar {
+  background: var(--nb-glass) !important;
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4) !important;
+  border: 1px solid var(--nb-glass-border) !important;
+}
+
+/* ---------- 卡片/面板 ---------- */
+
+.glass-panel,
+.glass-card {
+  background: var(--nb-glass) !important;
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4) !important;
+  border: 1px solid var(--nb-glass-border) !important;
+}
+
+/* ---------- 主题色微调:首页横幅等旧强调色背景统一走强调色 ---------- */
+
+.source-filter-active {
+  background: var(--nb-accent-soft) !important;
+}

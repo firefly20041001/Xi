@@ -900,7 +900,7 @@
   padding: 8px 16px;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 8px;
+  border-radius: var(--nbf-radius-full, 999px);
   color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;

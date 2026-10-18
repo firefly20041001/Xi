@@ -122,36 +122,45 @@ body {
 }
 
 /* Buttons */
+/* NexBox 风格按钮:胶囊 + 玻璃底 + 强调色 hover(阶段 3 第一批) */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--nb-glass-border);
+  border-radius: var(--nbf-radius-full, 999px);
+  font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background var(--nbf-dur-fast, 0.15s) ease,
+    color var(--nbf-dur-fast, 0.15s) ease,
+    border-color var(--nbf-dur-fast, 0.15s) ease;
   color: var(--text-primary);
-  background: var(--glass-bg);
+  background: var(--nb-glass);
 }
 
 .btn:hover {
-  background: var(--glass-bg-heavy);
+  background: var(--nb-accent-hover);
+  border-color: var(--nb-accent-border);
 }
 
 .btn-primary {
-  background: var(--accent-primary);
-  color: white;
+  background: var(--nb-accent);
+  border-color: var(--nb-accent);
+  color: var(--nb-accent-contrast, #fff);
 }
 
 .btn-primary:hover {
-  background: var(--accent-secondary);
+  background: var(--nb-accent-hover);
+  border-color: var(--nb-accent);
 }
 
 .btn-danger {
-  background: rgba(255, 59, 48, 0.15);
+  background: var(--nbf-danger-bg, rgba(255, 59, 48, 0.15));
   color: #ff3b30;
 }
 
@@ -253,12 +262,12 @@ body {
   z-index: 9999;
   min-width: 160px;
   padding: 6px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--nbf-glass-bg);
+  border: 1px solid var(--nbf-glass-border);
+  border-radius: var(--nbf-radius-panel, 16px);
+  box-shadow: var(--md-elev-2, 0 4px 14px rgba(0, 0, 0, 0.14));
+  backdrop-filter: blur(var(--nbf-blur-glass)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--nbf-blur-glass)) saturate(1.4);
   animation: contextMenuIn 0.15s ease-out;
 }
 
@@ -289,11 +298,16 @@ body {
 }
 
 .context-menu-item:hover {
-  background: var(--glass-bg-heavy);
+  background: var(--nbf-accent-hover);
+}
+
+.context-menu-item:focus-visible {
+  outline: none;
+  background: var(--nbf-accent-hover);
 }
 
 .context-menu-item:active {
-  background: var(--glass-bg);
+  background: var(--nbf-accent-border);
 }
 
 .context-menu-item svg {

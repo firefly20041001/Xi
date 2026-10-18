@@ -52,6 +52,15 @@ async function main() {
     return v
   }
 
+  // VIP 曲目会触发应用的"需要 VIP 权限"对话框;出现时点击"知道了"关闭
+  async function dismissVipDialog() {
+    await j(`(() => {
+      const btn = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === '知道了')
+      if (btn) btn.click()
+      return btn ? 'dismissed' : 'none'
+    })()`)
+  }
+
   async function nav(label) {
     return j(`(() => {
       const item = [...document.querySelectorAll('.nav-item')].find(el => el.textContent.trim() === ${JSON.stringify(label)})
@@ -143,9 +152,10 @@ async function main() {
     // VIP tracks fall through the whole quality cascade without login and
     // can take a while; poll and fall back to the second row
     let p = { src: false, paused: true, t: 0 }
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       for (let i = 0; i < 10; i++) {
         await sleep(2000)
+        await dismissVipDialog()
         p = JSON.parse(await j(`JSON.stringify({
           src: !!window.__audioElement?.src,
           paused: window.__audioElement?.paused,
@@ -160,6 +170,7 @@ async function main() {
         return 'ok'
       })()`)
     }
+    await dismissVipDialog()
     record('播放:音频起播', p.src && !p.paused && p.t > 0, JSON.stringify(p))
     record('播放:播放栏曲目', !!(await j(`document.querySelector('.player-track-name')?.textContent`)))
 
@@ -206,8 +217,8 @@ async function main() {
     await nav('账号')
     await sleep(700)
     const accountCards = await j(`document.querySelectorAll('.account-card').length`)
-    const notLoggedIn = await j(`document.body.textContent.includes('未登录')`)
-    record('账号:卡片渲染', accountCards === 2 && notLoggedIn, `${accountCards} 卡片`)
+    // 状态无关:卡片数量是结构断言;各卡登录态由账号存储决定
+    record('账号:卡片渲染', accountCards === 2, `${accountCards} 卡片`)
 
     // 13. Desktop lyrics window
     const before = (await (await fetch(`${CDP}/json`)).json()).filter((t) => t.type === 'page').length

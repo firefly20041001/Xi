@@ -33,6 +33,27 @@ export function ContextMenu({ x, y, onClose, items }: ContextMenuProps) {
     }
   }, [onClose])
 
+  // 键盘可达性:打开时聚焦第一项,方向键在项间移动(NexBox 菜单等效行为)
+  useEffect(() => {
+    const first = menuRef.current?.querySelector<HTMLButtonElement>('.context-menu-item')
+    first?.focus()
+  }, [items])
+
+  const handleMenuKeyDown = (e: React.KeyboardEvent) => {
+    const buttons = Array.from(
+      menuRef.current?.querySelectorAll<HTMLButtonElement>('.context-menu-item') ?? []
+    )
+    if (!buttons.length) return
+    const idx = buttons.indexOf(document.activeElement as HTMLButtonElement)
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      buttons[(idx + 1 + buttons.length) % buttons.length]?.focus()
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      buttons[(idx - 1 + buttons.length) % buttons.length]?.focus()
+    }
+  }
+
   // Adjust position to stay within viewport
   useEffect(() => {
     if (menuRef.current) {

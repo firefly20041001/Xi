@@ -11,6 +11,7 @@ import './styles/player.css'
 import './styles/pages.css'
 import './styles/animations.css'
 import './styles/nexbox-glass.css'
+import './styles/nexbox-tokens.css'
 
 useAppearanceStore.getState().init()
 

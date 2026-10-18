@@ -3,16 +3,18 @@
    Bottom playback controls with glass effect
    ======================================== */
 
+/* NexBox 浮动播放条:让位侧栏(76),底部留缝,圆角玻璃 */
 .player-bar {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 8px;
+  left: 76px;
+  right: 12px;
   height: 80px;
+  border-radius: 20px;
+  border: 1px solid var(--nb-glass-border);
   background: var(--player-bg);
   backdrop-filter: blur(28px) saturate(150%);
   -webkit-backdrop-filter: blur(28px) saturate(150%);
-  border-top: 1px solid var(--border-color-light);
   z-index: 999;
 }
 

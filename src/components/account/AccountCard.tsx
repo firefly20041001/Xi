@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { LogIn, LogOut, User, RefreshCw, Loader2 } from 'lucide-react'
 import { AccountProvider, AccountInfo } from '@shared/types/accounts'
 import { GlassPanel } from '../common/GlassPanel'
+import { NBTooltip } from '../../nexbox-ui/nb'
 import { useAccountStore } from '../../stores/accountStore'
 
 interface AccountCardProps {
@@ -69,14 +70,16 @@ export function AccountCard({ provider, account, onRefresh }: AccountCardProps) 
             <div className="account-id">ID: {account.userId}</div>
           </div>
           <div className="account-actions">
-            <button
-              className="btn btn-ghost"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              title="刷新账号信息"
-            >
-              <RefreshCw size={16} className={isRefreshing ? 'spin' : ''} />
-            </button>
+            <NBTooltip label="刷新账号信息">
+              <button
+                className="btn btn-ghost"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                aria-label="刷新账号信息"
+              >
+                <RefreshCw size={16} className={isRefreshing ? 'spin' : ''} />
+              </button>
+            </NBTooltip>
             <button className="btn btn-danger" onClick={handleLogout}>
               <LogOut size={16} />
               退出登录

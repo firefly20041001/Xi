@@ -126,7 +126,17 @@ function applyToDom(s: AppearanceState) {
   const accent = s.accent
   root.style.setProperty('--nb-accent', accent)
   root.style.setProperty('--nb-accent-hover', darken(accent, 0.86))
+  root.style.setProperty('--nb-accent-contrast', contrastFor(accent))
   root.style.setProperty('--nb-accent-soft', soft(accent, 0.12))
+}
+
+function contrastFor(hex: string): string {
+  const n = hex.replace('#', '')
+  const r = parseInt(n.slice(0, 2), 16) / 255
+  const g = parseInt(n.slice(2, 4), 16) / 255
+  const b = parseInt(n.slice(4, 6), 16) / 255
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+  return lum > 0.55 ? '#1a1a1a' : '#ffffff'
 }
 
 export const useAppearanceStore = create<AppearanceState>((set, get) => ({

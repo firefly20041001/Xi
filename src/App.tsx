@@ -85,7 +85,7 @@ export default function App() {
   return (
     <>
       <TrayAndShortcutHandler />
-      <Layout activePage={activePage} onNavigate={setActivePage}>
+      <Layout>
         {renderPage()}
       </Layout>
     </>

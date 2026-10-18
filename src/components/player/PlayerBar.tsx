@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { NBTooltip } from '../../nexbox-ui/nb'
 import { ListMusic, Music, X, ListPlus, Check, Trash2 } from 'lucide-react'
 import { stopAndClear, addToPlayQueue } from '../../utils/audio'
 import { usePlaybackStore } from '../../stores/playbackStore'
@@ -102,8 +103,8 @@ export function PlayerBar() {
                 </div>
               )}
             </div>
-            <button className="player-action-btn player-lyrics-btn" onClick={() => window.api.lyricsWindow.toggle()}>词</button>
-            <button className="player-action-btn" onClick={() => setShowQueue(!showQueue)}><ListMusic size={18} /></button>
+            <NBTooltip label="桌面歌词"><button className="player-action-btn player-lyrics-btn" aria-label="桌面歌词" onClick={() => window.api.lyricsWindow.toggle()}>词</button></NBTooltip>
+            <NBTooltip label="播放队列"><button className="player-action-btn" aria-label="播放队列" onClick={() => setShowQueue(!showQueue)}><ListMusic size={18} /></button></NBTooltip>
           </div>
         </div>
       </div>

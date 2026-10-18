@@ -19,6 +19,7 @@
         "minWidth": 1000,
         "minHeight": 700,
         "center": true,
+        "decorations": false,
         "additionalBrowserArgs": "--autoplay-policy=no-user-gesture-required --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"
       }
     ],

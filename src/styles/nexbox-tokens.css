@@ -9,13 +9,41 @@
    - src/contexts/background-context.tsx(玻璃参数的 tooltip 映射)
    - src/lib/theme.ts / src/index.css
 
-   仅新增 --nbf-* 令牌,不与正式样式变量(–-bg-*/--nb-*)重复定义。
-   .nb-scope 作用域允许展示页独立切换浅色/深色,不影响正式页面。
+   作用域:
+   - :root / :root[data-theme='dark'] — 正式应用(跟随 data-theme)
+   - .nb-scope / .nb-scope[data-nb-scheme='dark'] — 展示页独立预览
+   仅新增 --nbf-* 令牌,不与正式样式变量(--bg-*/--nb-*)重复。
    ============================================================ */
 
-/* ---------- 亮色方案(默认) ---------- */
+/* ---------- 非方案类令牌(圆角/尺寸/动效/玻璃参数) ---------- */
+:root,
 .nb-scope {
-  /* 页面与面板 */
+  --nbf-radius-panel: 16px; /* Chakra xl,sidebar/卡片 */
+  --nbf-radius-card: 12px;
+  --nbf-radius-full: 999px;
+
+  --nbf-nav-h: 48px;
+  --nbf-win-btn: 36px;
+
+  --nbf-dur-fast: 0.15s;
+  --nbf-dur-base: 0.3s;
+  --nbf-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --nbf-blur-glass: 18px;
+  --nbf-blur-tooltip: blur(12px) saturate(1.4);
+
+  --nbf-danger: #c53030;
+  --nbf-danger-bg: #fff5f5;
+}
+
+:root[data-theme='dark'],
+.nb-scope[data-nb-scheme='dark'] {
+  --nbf-danger: #f56565;
+  --nbf-danger-bg: #742a2a;
+}
+
+/* ---------- 亮色方案 ---------- */
+:root,
+.nb-scope {
   --nbf-page-bg: #fafafa;
   --nbf-panel-solid: rgba(255, 255, 255, 1);
   --nbf-panel-solid-soft: rgba(255, 255, 255, 0.9);
@@ -25,15 +53,12 @@
   --nbf-glass-border-solid: rgba(200, 200, 200, 0.3);
   --nbf-glow: rgba(255, 255, 255, 0.8);
 
-  /* 文字 */
   --nbf-fg: #1a202c;
   --nbf-fg-input: #4a5568;
   --nbf-fg-muted: #718096;
   --nbf-fg-placeholder: #a0aec0;
   --nbf-fg-window-icon: rgba(0, 0, 0, 0.75);
-  --nbf-fg-window-icon-hover: gray.800;
 
-  /* 强调色状态系统(theme-color-context 语义) */
   --nbf-accent: var(--nb-accent, #98ddd0);
   --nbf-accent-hover: color-mix(in srgb, var(--nbf-accent) 20%, transparent);
   --nbf-accent-hover-dark: color-mix(in srgb, var(--nbf-accent) 30%, transparent);
@@ -41,7 +66,6 @@
   --nbf-accent-border: color-mix(in srgb, var(--nbf-accent) 40%, transparent);
   --nbf-accent-contrast: #1a1a1a;
 
-  /* 窗口控制 */
   --nbf-win-bg: rgba(255, 255, 255, 0.8);
   --nbf-win-icon: rgba(0, 0, 0, 0.6);
   --nbf-win-icon-hover: #1a202c;
@@ -49,36 +73,16 @@
   --nbf-close-icon-hover: #c53030;
   --nbf-close-hover-bg: #fff5f5;
 
-  /* 输入与结果 */
   --nbf-input-bg: var(--nbf-glass-bg);
   --nbf-input-bg-off: rgba(255, 255, 255, 0.9);
   --nbf-input-border: var(--nbf-glass-border);
   --nbf-input-border-off: var(--nbf-glass-border-solid);
   --nbf-result-bg: #f7fafc;
   --nbf-result-hover: #edf2f7;
-
-  /* 形状 */
-  --nbf-radius-panel: 16px; /* Chakra xl,sidebar/卡片 */
-  --nbf-radius-card: 12px;
-  --nbf-radius-full: 999px;
-
-  /* 尺寸 */
-  --nbf-nav-h: 48px;
-  --nbf-win-btn: 36px;
-
-  /* 动效(main-layout/sidebar/title-bar 实测值) */
-  --nbf-dur-fast: 0.15s;
-  --nbf-dur-base: 0.3s;
-  --nbf-ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --nbf-blur-glass: 18px;
-  --nbf-blur-tooltip: blur(12px) saturate(1.4);
-
-  /* 语义色(NexBox title-bar 关闭钮/通用反馈) */
-  --nbf-danger: #c53030;
-  --nbf-danger-bg: #fff5f5;
 }
 
 /* ---------- 深色方案 ---------- */
+:root[data-theme='dark'],
 .nb-scope[data-nb-scheme='dark'] {
   --nbf-page-bg: #0a0a0a;
   --nbf-panel-solid: rgba(17, 17, 17, 1);
@@ -94,10 +98,8 @@
   --nbf-fg-muted: #a0aec0;
   --nbf-fg-placeholder: #a0aec0;
   --nbf-fg-window-icon: rgba(255, 255, 255, 0.8);
-  --nbf-fg-window-icon-hover: gray;
 
   --nbf-accent-hover: color-mix(in srgb, var(--nbf-accent) 30%, transparent);
-  --nbf-accent-contrast: #1a1a1a;
 
   --nbf-win-bg: rgba(0, 0, 0, 0.8);
   --nbf-win-icon: rgba(255, 255, 255, 0.8);
@@ -112,7 +114,7 @@
   --nbf-result-hover: #2d3748;
 }
 
-/* 展示页容器基础(正式页面不加载本文件) */
+/* 展示页容器基础(正式页面不加载本文件也可用 :root 令牌) */
 .nb-scope {
   background: var(--nbf-page-bg);
   color: var(--nbf-fg);

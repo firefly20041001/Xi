@@ -13,22 +13,22 @@
 /* Glass intensities */
 .glass-light {
   background: var(--glass-bg-light);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(calc(var(--nb-glass-blur) * 0.6)) saturate(1.4);
+  -webkit-backdrop-filter: blur(calc(var(--nb-glass-blur) * 0.6)) saturate(1.4);
   border: 1px solid var(--glass-border-light);
 }
 
 .glass-medium {
   background: var(--glass-bg);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
   border: 1px solid var(--glass-border);
 }
 
 .glass-heavy {
   background: var(--glass-bg-heavy);
-  backdrop-filter: blur(60px) saturate(200%);
-  -webkit-backdrop-filter: blur(60px) saturate(200%);
+  backdrop-filter: blur(calc(var(--nb-glass-blur) * 1.6)) saturate(1.4);
+  -webkit-backdrop-filter: blur(calc(var(--nb-glass-blur) * 1.6)) saturate(1.4);
   border: 1px solid var(--glass-border);
 }
 
@@ -224,14 +224,17 @@
   animation: fadeIn 0.2s ease;
 }
 
+/* NexBox 玻璃材质:半透明底 + blur + 玻璃边框 */
 .vip-alert-modal {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
+  background: var(--nbf-glass-bg-strong);
+  backdrop-filter: blur(calc(var(--nb-glass-blur) * 1.6)) saturate(1.4);
+  -webkit-backdrop-filter: blur(calc(var(--nb-glass-blur) * 1.6)) saturate(1.4);
+  border: 1px solid var(--nbf-glass-border);
   border-radius: 20px;
   padding: 32px 40px;
   text-align: center;
   max-width: 380px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--md-elev-2, 0 4px 14px rgba(0, 0, 0, 0.14));
 }
 
 .vip-alert-icon {

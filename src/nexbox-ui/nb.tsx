@@ -298,17 +298,38 @@ export function NBKbd({ children }: { children: React.ReactNode }) {
 
 export function NBTooltip({
   label,
-  children
+  children,
+  openDelay = 150
 }: {
   label: string
   children: React.ReactNode
+  openDelay?: number
 }) {
+  // NexBox Tooltip 语义:hover 延迟 150ms 打开,离开立即关闭。
+  // 状态驱动而非 CSS :hover,便于后续按需挂载/定位。
+  const [visible, setVisible] = React.useState(false)
+  const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const show = () => {
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => setVisible(true), openDelay)
+  }
+  const hide = () => {
+    if (timer.current) clearTimeout(timer.current)
+    setVisible(false)
+  }
+
   return (
-    <span style={{ position: 'relative', display: 'inline-flex' }} className="nb-tooltip-host">
+    <span
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
+      style={{ position: 'relative', display: 'inline-flex' }}
+    >
       {children}
       <span
         role="tooltip"
-        className="nb-tooltip"
         style={{
           position: 'absolute',
           bottom: 'calc(100% + 8px)',
@@ -324,7 +345,7 @@ export function NBTooltip({
           borderRadius: 'var(--nbf-radius-full)',
           fontSize: 12,
           fontWeight: 500,
-          opacity: 0,
+          opacity: visible ? 1 : 0,
           pointerEvents: 'none',
           transition: 'opacity var(--nbf-dur-fast) ease',
           zIndex: 50
@@ -332,7 +353,6 @@ export function NBTooltip({
       >
         {label}
       </span>
-      <style>{`.nb-tooltip-host:hover .nb-tooltip { opacity: 1 !important; }`}</style>
     </span>
   )
 }

@@ -1,117 +1,67 @@
 /* ========================================
-   Layout Styles
-   App shell, title bar, content areas
+   Layout Styles — NexBox 三层骨架
+   壁纸层(fixed z0)/ 标题栏(组件内联 48px)/
+   悬浮侧栏(组件内联 64px)/ 内容层(ml96/pt56)
    ======================================== */
 
-.app-layout {
-  height: 100vh;
-  width: 100vw;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Background */
+/* 壁纸层:由 appearanceStore 通过内联样式驱动图片/渐变与模糊 */
 .app-background {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: -1;
+  z-index: 0;
+  pointer-events: none;
 }
 
-[data-theme='dark'] .app-background {
+:root[data-theme='dark'] .app-background {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
 }
 
-[data-theme='light'] .app-background {
+:root[data-theme='light'] .app-background {
   background: linear-gradient(135deg, #e8f0fe 0%, #f3e5f5 50%, #fce4ec 100%);
 }
 
-/* Title Bar */
-.title-bar {
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 0 12px;
-  -webkit-app-region: no-drag;
-  position: relative;
-  z-index: 100;
+/* 主内容层:让位悬浮侧栏(6+64+26=96)与标题栏(48+8=56),
+   自管滚动,底部让位浮动播放栏(8+80+12=100) */
+.nex-content {
+  position: fixed;
+  top: 56px;
+  left: 96px;
+  right: 32px;
+  bottom: 100px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 1;
+  padding: 0 8px 0 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.nex-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.nex-content::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.title-bar-drag {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  -webkit-app-region: drag;
+.nex-content::-webkit-scrollbar-thumb {
+  background: var(--nb-accent-hover);
+  border-radius: 3px;
+  min-height: 40px;
 }
 
-.title-bar-controls {
-  display: flex;
-  gap: 4px;
-  z-index: 10;
-  position: relative;
-  pointer-events: auto;
-  -webkit-app-region: no-drag;
-}
-
-.title-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.title-btn:hover {
-  background: var(--glass-bg);
-  color: var(--text-primary);
-}
-
-.title-btn-close:hover {
-  background: #ff3b30;
-  color: white;
-}
-
-/* Main Content Area */
-.app-content {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-  position: relative;
-}
-
-.main-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.main-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 0 24px 24px;
+.nex-content::-webkit-scrollbar-thumb:hover {
+  background: var(--nb-accent);
 }
 
 /* Page */
 .page {
   max-width: 1200px;
   margin: 0 auto;
-  padding-bottom: 100px;
+  padding-bottom: 24px;
 }
 
 .page-header {

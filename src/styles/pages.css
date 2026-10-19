@@ -5,6 +5,7 @@
 
 /* Search Page */
 .search-section {
+  /* 与页头的间距统一由 .page-header 的 margin-bottom 提供 */
   margin-bottom: 24px;
 }
 
@@ -114,9 +115,165 @@
   color: var(--text-tertiary);
 }
 
+/* 列表上方"播放全部"圆钮:一键把当前列表设为播放队列 */
+.list-topbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.list-topbar p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.play-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  height: 30px;
+  padding: 0 12px 0 5px;
+  border: none;
+  border-radius: 999px;
+  background: var(--nb-accent);
+  color: var(--nb-accent-contrast, #fff);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.15s ease, background 0.15s ease;
+}
+
+.play-all:hover {
+  filter: brightness(1.08);
+}
+
+.play-all:active {
+  transform: scale(0.96);
+}
+
+.play-all:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.play-all-disc {
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, black 16%, transparent);
+}
+
+/* 列表页浮动导航钮:右下悬浮(播放栏上方),定位当前歌曲 + 回到最顶 */
+.list-nav-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 112px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-nav-fab button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--nb-glass-border);
+  background: var(--nb-glass);
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: 0 6px 18px color-mix(in srgb, black 18%, transparent);
+  transition: background var(--nbf-dur-fast, 0.15s) ease, transform 0.12s ease,
+    color var(--nbf-dur-fast, 0.15s) ease;
+}
+
+.list-nav-fab button:hover {
+  background: color-mix(in srgb, var(--nb-accent) 18%, var(--nb-glass));
+  transform: translateY(-1px);
+}
+
+.list-nav-fab button:active {
+  transform: scale(0.94);
+}
+
+.list-nav-fab button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* 定位后的当前行脉冲提示 */
+@keyframes locate-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nb-accent) 55%, transparent); }
+  100% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--nb-accent) 0%, transparent); }
+}
+
+.track-item.locate-pulse {
+  animation: locate-pulse 1.2s ease-out 1;
+  border-radius: 8px;
+}
+
+/* 本地音乐:目录标签行 */
+.local-dirs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.local-dir-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 6px 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--nb-glass-border);
+  background: var(--nb-glass);
+  color: var(--text-secondary);
+  font-size: 12px;
+  max-width: 300px;
+}
+
+.local-dir-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.local-dir-remove {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.local-dir-remove:hover {
+  background: color-mix(in srgb, var(--nb-accent) 20%, transparent);
+  color: var(--text-primary);
+}
+
 /* Track List */
 .track-list {
   width: 100%;
+  /* 玻璃背板:浓度/磨砂统一由「玻璃模糊度」调节(--nb-list-bg 由 glassBlur 派生) */
+  background: var(--nb-list-bg, var(--nb-glass));
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  border: 1px solid var(--nb-glass-border);
+  border-radius: 16px;
+  padding: 6px 14px;
 }
 
 .track-list-header {
@@ -140,6 +297,11 @@
 .track-list-body {
   display: flex;
   flex-direction: column;
+}
+
+.track-list .track-item + .track-item {
+  /* 列表内卡牌间留一点距离 */
+  margin-top: 4px;
 }
 
 .track-item {
@@ -323,7 +485,13 @@
   position: relative;
 }
 
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .add-to-playlist-menu {
+  animation: pop-in 0.15s ease-out;
   position: absolute;
   right: 0;
   top: 100%;
@@ -426,7 +594,7 @@
   opacity: 0;
   transform: translateY(8px);
   transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(250, 88, 106, 0.4);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--nb-accent) 40%, transparent);
 }
 
 .album-card:hover .album-play-btn {
@@ -490,7 +658,7 @@
   opacity: 0;
   transform: translateY(8px);
   transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(250, 88, 106, 0.4);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--nb-accent) 40%, transparent);
 }
 
 .playlist-card:hover .playlist-play-btn {
@@ -585,7 +753,9 @@
 .playlist-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  /* 与页头蒙板拉开间距 */
+  margin-top: 16px;
 }
 
 .playlist-item {
@@ -818,31 +988,175 @@
   gap: 8px;
 }
 
-/* Settings Page */
-.settings-sections {
+/* Settings Page:NexBox 式双栏(左侧分类导航 + 右侧内容区) */
+.settings-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding-top: 8px;
+}
+
+.settings-nav {
+  width: 180px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 4px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  max-width: 600px;
+  gap: 4px;
+  padding: 12px 8px;
+  background: var(--nb-glass);
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  border: 1px solid var(--nb-glass-border);
+  border-radius: 16px;
 }
 
-.settings-section {
-  padding: 24px;
+.settings-nav-title {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 2px 10px 10px;
 }
 
-.settings-section-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 20px;
+.settings-nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.settings-nav-item:hover {
+  background: var(--nb-accent-soft);
+  color: var(--text-primary);
+}
+
+.settings-nav-item.active {
+  background: var(--nb-accent);
+  color: var(--nb-accent-contrast);
+}
+
+.settings-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.settings-module-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+}
+
+.settings-section {
+  padding: 8px 20px;
+  border-radius: 14px;
+}
+
+/* 壁纸缩略图(NexBox 背景选择同款:大缩略图 + 选中边框 + ✓ 徽章) */
+.wallpaper-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 0 12px;
+}
+
+.wallpaper-thumb {
+  position: relative;
+  width: 150px;
+  height: 84px;
+  border-radius: 12px;
+  border: 2px solid var(--nb-glass-border);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.wallpaper-thumb:hover {
+  transform: scale(1.03);
+}
+
+.wallpaper-thumb-active {
+  border-color: var(--nb-accent);
+}
+
+.wallpaper-thumb-name {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  font-size: 12px;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.wallpaper-thumb-check {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--nb-accent);
+  color: var(--nb-accent-contrast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 共享开关(强调色轨道,NexBox ThemeSwitch 等效) */
+.nb-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: var(--nb-glass-border);
+  transition: background 0.18s ease;
+  flex-shrink: 0;
+}
+
+.nb-switch-on {
+  background: var(--nb-accent);
+}
+
+.nb-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.18s ease;
+}
+
+.nb-switch-on .nb-switch-thumb {
+  left: 23px;
 }
 
 .settings-group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+}
+
+.settings-group .setting-item {
+  padding: 12px 0;
+}
+
+.settings-group .setting-item:not(:first-child) {
+  border-top: 1px solid rgba(127, 127, 127, 0.16);
 }
 
 .setting-item {
@@ -944,7 +1258,7 @@
 
 .shortcut-btn-editing {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(250, 88, 106, 0.2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nb-accent) 20%, transparent);
   animation: pulse 1s ease-in-out infinite;
 }
 
@@ -973,7 +1287,9 @@
   right: -50px;
   bottom: -50px;
   z-index: 0;
-}
+
+  /* 不透明基色：无封面/加载中时主播放栏不会透出重影 */
+  background: #0a0a12;}
 
 .fullscreen-lyrics-bg-img {
   width: 100%;

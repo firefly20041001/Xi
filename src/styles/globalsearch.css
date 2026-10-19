@@ -1,0 +1,263 @@
+/* 标题栏左上角全局搜索框:两平台歌曲实时下拉 */
+
+.gs-wrap {
+  position: relative;
+  width: 220px;
+  margin-left: 2px;
+}
+
+.gs-box {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 10px 0 11px;
+  border-radius: var(--nbf-radius-full, 999px);
+  background: var(--nb-glass);
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  border: 1px solid var(--nb-glass-border);
+  cursor: text;
+  transition: border-color var(--nbf-dur-fast, 0.15s) ease, box-shadow var(--nbf-dur-fast, 0.15s) ease;
+}
+
+.gs-box:focus-within {
+  border-color: var(--nb-accent);
+  box-shadow: 0 0 0 3px var(--nb-accent-soft);
+}
+
+.gs-icon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.gs-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.gs-input::placeholder {
+  color: var(--text-quaternary);
+}
+
+.gs-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color var(--nbf-dur-fast, 0.15s) ease;
+}
+
+.gs-clear:hover {
+  color: var(--text-primary);
+}
+
+/* 下拉面板 */
+.gs-dd {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 1100;
+  width: 540px;
+  max-height: min(420px, calc(100vh - 88px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--nb-glass);
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  border: 1px solid var(--nb-glass-border);
+  box-shadow: 0 12px 32px color-mix(in srgb, black 22%, transparent);
+  animation: gs-dd-in 0.16s ease-out;
+}
+
+/* 两平台并排(实测结果/推荐共用) */
+.gs-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 10px;
+  align-items: start;
+}
+
+.gs-cols-span {
+  grid-column: 1 / -1;
+}
+
+@keyframes gs-dd-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gs-dd::-webkit-scrollbar {
+  width: 4px;
+}
+
+.gs-dd::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gs-dd::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--nb-accent) 60%, transparent);
+  border-radius: 2px;
+}
+
+.gs-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.gs-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px 3px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+.gs-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.gs-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--nbf-dur-fast, 0.15s) ease;
+}
+
+.gs-item-active,
+.gs-item:hover {
+  background: color-mix(in srgb, var(--nb-accent) 14%, transparent);
+}
+
+.gs-item-name {
+  flex-shrink: 0;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.gs-item-active .gs-item-name,
+.gs-item:hover .gs-item-name {
+  color: var(--nb-accent);
+}
+
+.gs-item-artist {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.gs-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 10px;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+.gs-hint-sm {
+  justify-content: flex-start;
+  padding: 4px 10px 6px;
+  font-size: 11.5px;
+}
+
+.gs-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--nbf-dur-fast, 0.15s) ease, color var(--nbf-dur-fast, 0.15s) ease;
+}
+
+.gs-footer:hover {
+  background: color-mix(in srgb, var(--nb-accent) 10%, transparent);
+  color: var(--text-primary);
+}
+
+/* 空态:搜索记录 + 推荐 */
+.gs-head-split {
+  justify-content: space-between;
+}
+
+.gs-spark {
+  color: var(--nb-accent);
+}
+
+.gs-clock {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.gs-hist .gs-item-name {
+  flex: 1;
+  max-width: none;
+  font-weight: 400;
+}
+
+.gs-hist-text {
+  color: var(--text-secondary);
+}
+
+.gs-item-active .gs-hist-text,
+.gs-hist:hover .gs-hist-text {
+  color: var(--text-primary);
+}
+
+.gs-clear-history {
+  padding: 2px 7px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background var(--nbf-dur-fast, 0.15s) ease, color var(--nbf-dur-fast, 0.15s) ease;
+}
+
+.gs-clear-history:hover {
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  color: var(--text-primary);
+}

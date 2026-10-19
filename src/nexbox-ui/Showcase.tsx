@@ -104,7 +104,7 @@ export function Showcase() {
           }}
         >
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--nbf-fg)' }}>
-            Yachiyo 组件展示
+            希 组件展示
             <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--nbf-fg-muted)', marginLeft: 10 }}>
               NexBox 设计基座 · 独立预览页
             </span>

@@ -1,0 +1,162 @@
+/* 托盘液态玻璃菜单样式(独立小窗,亚克力由 Rust 侧窗口特效提供) */
+
+@keyframes tray-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.tray-menu {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+  /* 不设圆角：系统亚克力背板由 DWM 统一按窗口形状裁剪（Win11 自带圆角），
+     CSS 再切圆角会与背板裁剪不一致，四角漏出无 tint 的纯亚克力 */
+  background: var(--nb-glass, rgba(255, 255, 255, 0.55));
+  border: 1px solid var(--nb-glass-border, rgba(255, 255, 255, 0.6));
+  color: var(--text-primary, #1a1a1a);
+  animation: tray-in 0.18s ease-out;
+}
+
+/* 播放控制行 */
+.tray-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 4px 0 10px;
+}
+
+.tbtn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--nb-glass-border, rgba(255, 255, 255, 0.5));
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.tbtn:hover {
+  background: color-mix(in srgb, var(--nb-accent) 18%, transparent);
+}
+
+.tbtn:active {
+  transform: scale(0.94);
+}
+
+.tbtn-play {
+  width: 46px;
+  height: 46px;
+  border: none;
+}
+
+/* 曲目行 */
+.tray-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--nb-accent) 10%, transparent);
+  min-width: 0;
+}
+
+.tray-track-text {
+  min-width: 0;
+}
+
+.tray-track-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tray-track-artist {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 分隔线 */
+.tray-divider {
+  height: 1px;
+  margin: 6px 4px;
+  background: color-mix(in srgb, var(--text-primary) 12%, transparent);
+}
+
+/* 通用行 */
+.tray-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.tray-row:hover {
+  background: color-mix(in srgb, var(--nb-accent) 14%, transparent);
+}
+
+.tray-row span:not(.tray-check):not(.tray-vol-num) {
+  flex: 1;
+}
+
+.tray-row-active {
+  background: color-mix(in srgb, var(--nb-accent) 12%, transparent);
+}
+
+.tray-check {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--nb-glass-border);
+  color: var(--text-tertiary);
+}
+
+.tray-check.on {
+  background: var(--nb-accent);
+  border-color: var(--nb-accent);
+  color: var(--nb-accent-contrast, #fff);
+}
+
+/* 音量行 */
+.tray-slider {
+  flex: 1;
+  height: 4px;
+}
+
+.tray-vol-num {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  width: 26px;
+  text-align: right;
+}
+
+/* 退出(红色警示) */
+.tray-quit {
+  color: #e5484d;
+}
+
+.tray-quit:hover {
+  background: rgba(229, 72, 77, 0.14);
+}

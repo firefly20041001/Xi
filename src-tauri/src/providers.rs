@@ -468,32 +468,6 @@ pub async fn netease_get_album(client: &reqwest::Client, cookie: &str, id: &str)
     })
 }
 
-pub async fn netease_daily_recommend(client: &reqwest::Client, cookie: &str) -> Vec<Track> {
-    if cookie.is_empty() {
-        return vec![];
-    }
-    match fetch_json(
-        client,
-        "https://music.163.com/api/v3/discovery/recommend/songs",
-        reqwest::Method::GET,
-        netease_headers(cookie),
-        None,
-        10,
-    )
-    .await
-    {
-        Ok(res) => {
-            let songs = jget(&res, &["data", "dailySongs"])
-                .or_else(|| jget(&res, &["recommend"]))
-                .and_then(|v| v.as_array())
-                .cloned()
-                .unwrap_or_default();
-            songs.iter().map(map_netease_track).collect()
-        }
-        Err(_) => vec![],
-    }
-}
-
 // ---------- QQ Music ----------
 
 fn map_qq_track(song: &Value) -> Track {
@@ -1108,57 +1082,6 @@ pub async fn qq_get_toplist(
     Ok(vec![])
 }
 
-pub async fn qq_daily_recommend(client: &reqwest::Client, cookie: &str) -> Vec<Track> {
-    if cookie.is_empty() {
-        return vec![];
-    }
-    let uin = uin_from_cookie(cookie);
-    let gtk = gtk_from_cookie(cookie);
-
-    // Method 1: daily recommend API
-    let body = json!({
-        "comm": { "ct": 24, "cv": 0, "uin": format!("o{uin}"), "g_tk": gtk, "format": "json", "inCharset": "utf-8", "outCharset": "utf-8", "notice": 0, "platform": "h5", "needNewCode": 1 },
-        "req_0": {
-            "module": "music.musichallComm.PlayLogicComm",
-            "method": "GetDailyRecommend",
-            "param": { "uin": format!("o{uin}") }
-        }
-    });
-    if let Ok(res) = fetch_json(client, QQ_API, reqwest::Method::POST, qq_headers(cookie), Some(body), 10).await {
-        let songs = jget(&res, &["req_0", "data", "songlist"])
-            .or_else(|| jget(&res, &["req_0", "data", "songs"]))
-            .and_then(|v| v.as_array())
-            .cloned()
-            .unwrap_or_default();
-        if !songs.is_empty() {
-            return songs.iter().map(map_qq_track_lenient).collect();
-        }
-    }
-
-    // Method 2: popular playlist
-    let url = format!("{QQ_LEGACY}/v8/fcg-bin/fcg_v8_playlist_cp.fcg?disstid=888888&format=json&song_num=30&song_begin=0&g_tk=5381");
-    if let Ok(res) = fetch_json(client, &url, reqwest::Method::GET, qq_headers(cookie), None, 10).await {
-        let songs = jget(&res, &["cdlist"])
-            .and_then(|c| c.as_array())
-            .and_then(|a| a.first())
-            .and_then(|cd| cd.get("songlist"))
-            .and_then(|v| v.as_array())
-            .cloned()
-            .unwrap_or_default();
-        if !songs.is_empty() {
-            return songs.iter().map(map_qq_track_lenient).collect();
-        }
-    }
-
-    // Method 3: toplist
-    if let Ok(res) = qq_get_toplist(client, cookie, 26, 30).await {
-        if !res.is_empty() {
-            return res;
-        }
-    }
-    vec![]
-}
-
 // ---------- Lyrics ----------
 
 pub fn parse_lrc(lrc_text: &str) -> Vec<LyricsLine> {
@@ -1417,19 +1340,6 @@ pub async fn get_toplist(
     let cookie = cookies.get(source).map(String::as_str).unwrap_or("");
     match source {
         "qqmusic" => qq_get_toplist(client, cookie, topid, limit).await.unwrap_or_default(),
-        _ => vec![],
-    }
-}
-
-pub async fn get_daily_recommend(
-    client: &reqwest::Client,
-    cookies: &HashMap<String, String>,
-    source: &str,
-) -> Vec<Track> {
-    let cookie = cookies.get(source).map(String::as_str).unwrap_or("");
-    match source {
-        "netease" => netease_daily_recommend(client, cookie).await,
-        "qqmusic" => qq_daily_recommend(client, cookie).await,
         _ => vec![],
     }
 }

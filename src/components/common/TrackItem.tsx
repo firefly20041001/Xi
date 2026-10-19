@@ -7,7 +7,7 @@ import { usePlaybackStore } from '../../stores/playbackStore'
 import { usePlaylistStore } from '../../stores/playlistStore'
 import { useUIStore } from '../../stores/uiStore'
 import { addToPlayQueue } from '../../utils/audio'
-import { getCoverUrl } from '../../utils/cover'
+import { trackCoverUrl, coverImgFallback } from '../../utils/cover'
 
 interface TrackItemProps {
   track: Track
@@ -107,15 +107,13 @@ export function TrackItem({ track, index, onPlay, onDelete, showIndex = true, sh
         </div>
 
         <div className="track-item-cover">
-          {track.albumCoverUrl ? (
-            <img
-              src={getCoverUrl(track.albumCoverUrl, 100)}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-            />
-          ) : null}
+          <img
+            src={trackCoverUrl(track, 100)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={coverImgFallback}
+          />
           <div className="track-cover-placeholder"><Music size={16} /></div>
           <div className="track-play-overlay"><Play size={16} fill="white" /></div>
         </div>

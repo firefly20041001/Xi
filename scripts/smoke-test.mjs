@@ -12,7 +12,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function main() {
   const targets = await (await fetch(`${CDP}/json`)).json()
-  const page = targets.find((t) => t.type === 'page' && t.url.includes('5180'))
+  const page = targets.find((t) => t.type === 'page' && t.url.includes('5180') && !t.url.includes('tray') && !t.url.includes('lyrics'))
   if (!page) throw new Error('main window page not found — is the app running with port 9333?')
   const ws = new WebSocket(page.webSocketDebuggerUrl)
   let id = 0
@@ -96,12 +96,15 @@ async function main() {
     // 3. Settings details (sections + version)
     await nav('设置')
     await sleep(600)
-    const settingsInfo = await j(`(() => {
-      const sections = [...document.querySelectorAll('.settings-section-title')].map(t => t.textContent.trim())
+    const settingsInfo = await j(`(async () => {
+      const cat = [...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent.trim() === '关于')
+      cat?.click()
+      await new Promise(r => setTimeout(r, 400))
+      const sections = [...document.querySelectorAll('.settings-module-label')].map(t => t.textContent.trim())
       const row = [...document.querySelectorAll('.setting-item')].find(i => i.textContent.includes('版本'))
       return { sections, version: row ? row.querySelector('.setting-value')?.textContent : null }
     })()`)
-    record('设置:关于/版本号', settingsInfo.sections.some((s) => s.includes('关于')) && settingsInfo.version === '2.1.1', JSON.stringify(settingsInfo))
+    record('设置:关于/版本号', settingsInfo.sections.some((s) => s.includes('关于')) && settingsInfo.version === '3.1.9', JSON.stringify(settingsInfo))
 
     // Theme toggle round-trip
     const themeFlip = await j(`(async () => {

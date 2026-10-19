@@ -187,7 +187,7 @@ export function PlaylistPage() {
 
       {/* Playlist Detail View */}
       {selectedPlaylist && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <>
           <GlassPanel intensity="medium" className="playlist-detail-header">
             <div className="playlist-detail-cover">
               {selectedPlaylist.coverUrl ? (
@@ -218,7 +218,7 @@ export function PlaylistPage() {
 
           {/* Refresh Result */}
           {refreshResult && (
-            <GlassPanel intensity="light" className="import-panel" style={{ marginTop: 12 }}>
+            <GlassPanel intensity="light" className="import-panel">
               <div style={{ display: 'flex', gap: 24, justifyContent: 'center' }}>
                 <span style={{ color: 'var(--accent-green)' }}>新增 {refreshResult.added} 首</span>
                 <span style={{ color: '#ff3b30' }}>移除 {refreshResult.removed} 首</span>
@@ -238,7 +238,7 @@ export function PlaylistPage() {
           ) : (
             <GlassPanel intensity="light" className="empty-state"><Music size={32} /><p>歌单为空</p></GlassPanel>
           )}
-        </motion.div>
+        </>
       )}
 
       {/* Playlist List View */}
@@ -250,7 +250,7 @@ export function PlaylistPage() {
             </GlassPanel>
           ) : (
             playlists.map((playlist, index) => (
-              <motion.div key={playlist.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
+              <div key={playlist.id}>
                 <GlassPanel intensity="light" hover className="playlist-item" onClick={() => handleSelectPlaylist(playlist.id)}>
                   <div className="playlist-item-cover">
                     {playlist.coverUrl ? <img src={playlist.coverUrl} alt={playlist.name} /> : <div className="cover-placeholder"><Music size={20} /></div>}
@@ -268,7 +268,7 @@ export function PlaylistPage() {
                     </button>
                   </div>
                 </GlassPanel>
-              </motion.div>
+              </div>
             ))
           )}
         </div>

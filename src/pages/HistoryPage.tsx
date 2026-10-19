@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Clock, Trash2, Music } from 'lucide-react'
+import { Clock, Trash2, Music, Play } from 'lucide-react'
 import { Track } from '@shared/types/streaming'
 import { GlassPanel } from '../components/common/GlassPanel'
 import { TrackList } from '../components/common/TrackList'
@@ -13,7 +13,7 @@ interface HistoryEntry {
 
 export function HistoryPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([])
-  const { playQueue } = usePlayback()
+  const { playQueue, playAll } = usePlayback()
 
   useEffect(() => {
     loadHistory()
@@ -70,9 +70,15 @@ export function HistoryPage() {
         </GlassPanel>
       ) : (
         <div>
-          <p style={{ marginBottom: 16, color: 'var(--text-secondary)' }}>
-            共 {history.length} 首歌曲
-          </p>
+          <div className="list-topbar">
+            <p>共 {history.length} 首歌曲</p>
+            <button className="play-all" title="播放全部" aria-label="播放全部历史歌曲"
+              disabled={tracks.length === 0}
+              onClick={() => playAll(tracks)}>
+              <span className="play-all-disc"><Play size={12} fill="currentColor" /></span>
+              播放全部
+            </button>
+          </div>
           <TrackList
             tracks={tracks}
             onPlay={(track, index) => playQueue(tracks, index, { page: 'history' })}

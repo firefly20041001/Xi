@@ -24,20 +24,22 @@
   --nb-glow: rgba(255, 255, 255, 0.5);
 }
 
-/* ---------- 壁纸层(由 appearanceStore 通过内联样式驱动) ---------- */
+/* ---------- 壁纸层(由 appearanceStore 通过内联样式驱动) ----------
+   注意:此处背景绝不可加 !important,否则会压过内联注入的壁纸图片,
+   导致"图片背景不生效"。渐变仅为挂载前 / 内联为空时的兜底。 */
 
 .app-background {
   position: fixed !important;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(135deg, #ffd9e8 0%, #c7d2fe 45%, #bae6fd 100%) !important;
+  background: linear-gradient(135deg, #ffd9e8 0%, #c7d2fe 45%, #bae6fd 100%);
   filter: blur(var(--nb-wallpaper-blur));
   transform: scale(1.04);
   transition: filter 0.3s ease;
 }
 
 :root[data-theme='dark'] .app-background {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
 }
 
 /* ---------- 玻璃面板通用类 ---------- */

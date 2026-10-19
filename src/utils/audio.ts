@@ -1,9 +1,17 @@
 import { usePlaybackStore } from '../stores/playbackStore'
-import { Track } from '@shared/types/streaming'
+import { Track, PlaybackInfo } from '@shared/types/streaming'
 import { createListeningEvent, saveListeningEvent } from './listeningBehavior'
+import { convertFileSrc } from '@tauri-apps/api/core'
+import { LOCAL_DEFAULT_COVER } from './cover'
 
 const audio = new Audio()
 audio.preload = 'auto'
+
+// 本地音源:文件路径 → asset 协议 URL;无 filePath 视为失效条目
+function localTrackUrl(track: Track): string | null {
+  if (track.source !== 'local' || !track.filePath) return null
+  return convertFileSrc(track.filePath)
+}
 
 // Expose globally for device switching IPC
 ;(window as any).__audioElement = audio
@@ -33,11 +41,13 @@ let restoreStarted = false
 function updateMediaSession(track: Track) {
   if (!('mediaSession' in navigator)) return
   try {
+    // 无封面曲目(含封面 URL 失效)回退应用图标
+    const cover = track.albumCoverUrl || LOCAL_DEFAULT_COVER
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.name,
       artist: track.artists.join(', '),
       album: track.albumName || '',
-      artwork: track.albumCoverUrl ? [{ src: track.albumCoverUrl, sizes: '300x300', type: 'image/jpeg' }] : []
+      artwork: [{ src: cover, sizes: '300x300', type: cover.endsWith('.png') ? 'image/png' : 'image/jpeg' }]
     })
   } catch {}
 }
@@ -94,11 +104,20 @@ async function playTrackDirect(track: Track) {
 
     usePlaybackStore.getState().setCurrentTrack(track)
 
-    const info = await window.api.streaming.resolvePlayback(track.source, track.id, usePlaybackStore.getState().quality || 'standard')
-    console.log('[Playback] URL:', info.url.substring(0, 100))
-    usePlaybackStore.getState().setPlaybackInfo(info)
+    let playUrl: string
+    if (track.source === 'local') {
+      const localUrl = localTrackUrl(track)
+      if (!localUrl) throw new Error('本地文件不可用(可能已被移动或删除)')
+      playUrl = localUrl
+      console.log('[Playback] Local file:', track.filePath)
+    } else {
+      const info = await window.api.streaming.resolvePlayback(track.source, track.id, usePlaybackStore.getState().quality || 'standard')
+      console.log('[Playback] URL:', info.url.substring(0, 100))
+      usePlaybackStore.getState().setPlaybackInfo(info)
+      playUrl = info.url
+    }
 
-    audio.src = info.url
+    audio.src = playUrl
     audio.volume = usePlaybackStore.getState().isMuted ? 0 : usePlaybackStore.getState().volume
 
     // Apply audio output device (non-blocking)
@@ -120,7 +139,9 @@ async function playTrackDirect(track: Track) {
     // Load lyrics
     try {
       const lyrics = await window.api.lyrics.getLyrics({
-        trackId: track.id, trackName: track.name, artistName: track.artists.join(', '), source: track.source
+        trackId: track.id, trackName: track.name, artistName: track.artists.join(', '),
+        // 本地文件无平台 ID,退回按名称匹配网易云歌词库
+        source: track.source === 'local' ? 'netease' : track.source
       })
       if (lyrics && lyrics.lines.length > 0) {
         usePlaybackStore.getState().setLyrics(lyrics)
@@ -132,7 +153,8 @@ async function playTrackDirect(track: Track) {
     }
   } catch (err: any) {
     console.error('[Playback] Failed:', err.message)
-    showVipAlert(track.name, track.source)
+    // 本地文件不对用户抛"VIP"提示
+    if (track.source !== 'local') showVipAlert(track.name, track.source)
   }
 }
 
@@ -309,7 +331,12 @@ export function restoreLastTrack() {
 
   // Restore the track (without auto-playing)
   // Set the audio source so the track is ready to play
-  window.api.streaming.resolvePlayback(state.currentTrack.source, state.currentTrack.id, usePlaybackStore.getState().quality || 'standard')
+  const cur = state.currentTrack
+  const localUrl = localTrackUrl(cur)
+  const resolveTask: Promise<PlaybackInfo> = localUrl
+    ? Promise.resolve({ url: localUrl } as PlaybackInfo)
+    : window.api.streaming.resolvePlayback(cur.source, cur.id, usePlaybackStore.getState().quality || 'standard')
+  resolveTask
     .then((info) => {
       audio.src = info.url
       audio.volume = state.isMuted ? 0 : state.volume
@@ -334,7 +361,8 @@ export function restoreLastTrack() {
     trackId: state.currentTrack.id,
     trackName: state.currentTrack.name,
     artistName: state.currentTrack.artists.join(', '),
-    source: state.currentTrack.source
+    // 本地文件无平台 ID,退回按名称匹配网易云歌词库
+    source: state.currentTrack.source === 'local' ? 'netease' : state.currentTrack.source
   }).then((lyrics) => {
     if (lyrics) usePlaybackStore.getState().setLyrics(lyrics)
   }).catch(() => {})

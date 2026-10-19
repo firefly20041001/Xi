@@ -34,7 +34,8 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         lyrics: fileURLToPath(new URL('./lyrics.html', import.meta.url)),
-        showcase: fileURLToPath(new URL('./showcase.html', import.meta.url))
+        showcase: fileURLToPath(new URL('./showcase.html', import.meta.url)),
+        tray: fileURLToPath(new URL('./tray.html', import.meta.url))
       }
     }
   }

@@ -5,7 +5,7 @@ import { usePlaybackStore } from '../../stores/playbackStore'
 import { usePlayback } from '../../hooks/usePlayback'
 import { PlayerControls } from '../player/PlayerControls'
 import { ProgressBar } from '../player/ProgressBar'
-import { getCoverUrl } from '../../utils/cover'
+import { trackCoverUrl, coverImgFallback } from '../../utils/cover'
 
 interface FullScreenLyricsProps {
   isOpen: boolean
@@ -57,8 +57,8 @@ export function FullScreenLyrics({ isOpen, onClose }: FullScreenLyricsProps) {
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         >
           <div className="fullscreen-lyrics-bg">
-            {currentTrack?.albumCoverUrl && (
-              <img src={getCoverUrl(currentTrack.albumCoverUrl, 300)} alt="" className="fullscreen-lyrics-bg-img" />
+            {currentTrack && (
+              <img src={trackCoverUrl(currentTrack, 300)} alt="" className="fullscreen-lyrics-bg-img" onError={coverImgFallback} />
             )}
             <div className="fullscreen-lyrics-bg-overlay" />
           </div>
@@ -73,8 +73,8 @@ export function FullScreenLyrics({ isOpen, onClose }: FullScreenLyricsProps) {
               <div
                 className={`fullscreen-lyrics-cover ${isPlaying ? 'spinning' : ''}`}
               >
-                {currentTrack?.albumCoverUrl ? (
-                  <img src={getCoverUrl(currentTrack.albumCoverUrl, 300)} alt={currentTrack.albumName} />
+                {currentTrack ? (
+                  <img src={trackCoverUrl(currentTrack, 300)} alt={currentTrack.albumName} onError={coverImgFallback} />
                 ) : (
                   <div className="fullscreen-lyrics-cover-placeholder"><Music size={64} /></div>
                 )}

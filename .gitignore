@@ -4,3 +4,11 @@ src-tauri/target
 src-tauri/gen
 *.log
 .DS_Store
+
+# 根目录素材副本(实际使用 public/icon.png 与 src-tauri/icons/*)
+/icon.png
+/icon-2.png
+
+# scripts 目录里的一次性调试/验证脚本,不入库(保留既有 smoke-test.mjs)
+scripts/*
+!scripts/smoke-test.mjs

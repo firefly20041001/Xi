@@ -7,6 +7,7 @@ import {
   Search,
   Library,
   ListMusic,
+  FolderOpen,
   Clock,
   User,
   Settings,
@@ -14,14 +15,14 @@ import {
   Sun
 } from 'lucide-react'
 import { useUIStore } from '../../stores/uiStore'
-import { useAccountStore } from '../../stores/accountStore'
 import { NBTooltip } from '../../nexbox-ui/nb'
 
 const NAV_ITEMS = [
   { id: 'home', label: '首页', Icon: Home },
   { id: 'search', label: '搜索', Icon: Search },
-  { id: 'library', label: '音乐库', Icon: Library },
+  { id: 'library', label: '推荐歌单', Icon: Library },
   { id: 'playlists', label: '歌单', Icon: ListMusic },
+  { id: 'local', label: '本地音乐', Icon: FolderOpen },
   { id: 'history', label: '播放历史', Icon: Clock },
   { id: 'account', label: '账号', Icon: User },
   { id: 'settings', label: '设置', Icon: Settings }
@@ -29,7 +30,6 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const { activePage, setActivePage, theme, toggleTheme } = useUIStore()
-  const accounts = useAccountStore((s) => s.accounts)
 
   return (
     <aside
@@ -51,9 +51,9 @@ export function Sidebar() {
       }}
     >
       {/* 顶部品牌图标(点击回首页) */}
-      <NBTooltip label="Yachiyo">
+      <NBTooltip label="希">
         <button
-          aria-label="Yachiyo"
+          aria-label="希"
           onClick={() => setActivePage('home')}
           style={{
             width: 48,
@@ -101,7 +101,7 @@ export function Sidebar() {
                   borderRadius: 14,
                   border: 'none',
                   cursor: 'pointer',
-                  background: active ? 'var(--nb-accent-active)' : 'transparent',
+                  background: active ? 'var(--nb-accent)' : 'transparent',
                   color: active ? 'var(--nb-accent-contrast)' : 'var(--text-secondary)',
                   transition: `background var(--nbf-dur-fast, 0.15s) ease`
                 }}
@@ -130,7 +130,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* 底部:账号状态点 + 主题切换 */}
+      {/* 底部:主题切换 */}
       <div
         style={{
           marginTop: 'auto',
@@ -143,19 +143,6 @@ export function Sidebar() {
           width: '100%'
         }}
       >
-        <div
-          title="账号状态(网易云 / QQ音乐)"
-          style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}
-        >
-          <span
-            className={`account-dot ${accounts.netease ? 'account-dot-active netease' : ''}`}
-            style={{ width: 8, height: 8, display: 'block' }}
-          />
-          <span
-            className={`account-dot ${accounts.qqmusic ? 'account-dot-active qqmusic' : ''}`}
-            style={{ width: 8, height: 8, display: 'block' }}
-          />
-        </div>
         <NBTooltip label={theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'}>
           <button
             aria-label={theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'}

@@ -22,21 +22,13 @@ export function AccountPage() {
       </motion.div>
 
       <div className="account-cards">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <div>
           <AccountCard provider="netease" account={accounts.netease} onRefresh={refreshAccounts} />
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
+        <div>
           <AccountCard provider="qqmusic" account={accounts.qqmusic} onRefresh={refreshAccounts} />
-        </motion.div>
+        </div>
       </div>
     </div>
   )

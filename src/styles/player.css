@@ -44,6 +44,11 @@
   pointer-events: none;
 }
 
+/* 白色高光层在暗色下会形成发白蒙板,关闭 */
+:root[data-theme='dark'] .player-bar-glass {
+  background: none;
+}
+
 .player-bar-content {
   position: relative;
   height: 100%;
@@ -69,9 +74,9 @@
   position: absolute;
   /* Sit exactly on the bar's top edge so the line reads as the bar's top
      border; hanging above it (top: -3px) exposed page content in the seam */
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 2px;
+  left: 60px;
+  right: 60px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -135,7 +140,7 @@
   height: 12px;
   background: var(--accent-primary);
   border-radius: 50%;
-  box-shadow: 0 0 4px rgba(250, 88, 106, 0.5);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--nb-accent) 50%, transparent);
   transition: transform 0.15s;
 }
 
@@ -204,6 +209,8 @@
   gap: 16px;
   position: relative;
   z-index: 20;
+  /* 与顶部进度条拉开一点距离 */
+  margin-top: 8px;
   flex: 1;
   min-width: 200px;
 }
@@ -247,7 +254,7 @@
 }
 
 .mode-btn-active {
-  color: #DE89A8;
+  color: var(--nb-accent);
 }
 
 /* Light variant for lyrics page */
@@ -359,12 +366,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
   background: none;
   border: none;
   border-radius: 6px;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s;
+}
+
+/* 带文字的音质按钮：宽度随内容自适应（Hi-Res 背景盖住文字） */
+.player-action-btn-text {
+  width: auto;
+  min-width: 32px;
+  padding: 0 9px;
 }
 
 .player-action-btn:hover {
@@ -376,8 +391,20 @@
   color: var(--accent-primary);
 }
 
+/* 弹出层入场动画（音质菜单/队列面板/添加到歌单菜单共用） */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Quality Menu */
 .quality-menu {
+  animation: pop-in 0.16s ease-out;
   position: absolute;
   bottom: 100%;
   right: 0;
@@ -430,26 +457,30 @@
   border-color: var(--accent-primary);
 }
 
-/* Queue Panel */
+/* 播放队列:四周圆角的独立悬浮玻璃面板(不贴边、无全屏遮罩) */
 .queue-panel {
+  animation: panel-in 0.2s ease-out;
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 80px;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.5);
+  right: 12px;
+  bottom: 100px; /* 播放栏(8+80)上方留缝 */
+  width: 360px;
+  max-width: calc(100vw - 128px); /* 窄窗口自适应,不压侧栏 */
+  max-height: calc(100vh - 168px); /* 标题栏 48 + 播放栏 88 + 上下缝 */
+  z-index: 120;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  background: var(--nb-glass-strong);
+  backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur)) saturate(1.4);
+  border: 1px solid var(--nb-glass-border);
+  border-radius: 20px;
+  box-shadow: var(--md-elev-2, 0 8px 28px rgba(0, 0, 0, 0.18));
+  overflow: hidden;
 }
 
 .queue-panel-content {
-  width: 360px;
-  height: 100%;
-  background: var(--bg-elevated);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  border-left: 1px solid var(--border-color-light);
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -469,6 +500,7 @@
 
 .queue-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 8px 0;
 }
@@ -487,7 +519,7 @@
 }
 
 .queue-item-active {
-  background: var(--glass-bg-heavy);
+  background: var(--nb-accent-soft);
 }
 
 .queue-item-active .queue-name {
@@ -537,113 +569,4 @@
 .queue-remove-btn:hover {
   color: #ff3b30;
   background: rgba(255, 59, 48, 0.1);
-}
-
-/* Queue Panel */
-.queue-panel {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 80px;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: flex-end;
-}
-
-.queue-panel-content {
-  width: 360px;
-  height: 100%;
-  background: var(--bg-elevated);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  border-left: 1px solid var(--border-color-light);
-  display: flex;
-  flex-direction: column;
-}
-
-.queue-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color-light);
-}
-
-.queue-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.queue-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 0;
-}
-
-.queue-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 20px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.queue-item:hover {
-  background: var(--glass-bg);
-}
-
-.queue-item-active {
-  background: var(--glass-bg-heavy);
-}
-
-.queue-item-active .queue-name {
-  color: var(--accent-primary);
-}
-
-.queue-remove-btn {
-  background: none;
-  border: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.queue-remove-btn:hover {
-  color: #ff3b30;
-  background: rgba(255, 59, 48, 0.1);
-}
-
-.queue-index {
-  width: 24px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.queue-info {
-  flex: 1;
-  overflow: hidden;
-}
-
-.queue-name {
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.queue-artist {
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }

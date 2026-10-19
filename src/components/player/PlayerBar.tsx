@@ -9,7 +9,7 @@ import { ProgressBar } from './ProgressBar'
 import { VolumeControl } from './VolumeControl'
 import { usePlayback } from '../../hooks/usePlayback'
 import { FullScreenLyrics } from '../lyrics/FullScreenLyrics'
-import { getCoverUrl } from '../../utils/cover'
+import { trackCoverUrl, coverImgFallback } from '../../utils/cover'
 import { Track, QualityLevel } from '@shared/types/streaming'
 
 export function PlayerBar() {
@@ -27,9 +27,13 @@ export function PlayerBar() {
   const [showLyrics, setShowLyrics] = useState(false)
   const [showQueue, setShowQueue] = useState(false)
   const [showQualityMenu, setShowQualityMenu] = useState(false)
+  const [lyricsOn, setLyricsOn] = useState(false)
   const [menuTrack, setMenuTrack] = useState<Track | null>(null)
   const [addedId, setAddedId] = useState<string | null>(null)
   const queueListRef = useRef<HTMLDivElement>(null)
+  const qualityMenuRef = useRef<HTMLDivElement>(null)
+  const queuePanelRef = useRef<HTMLDivElement>(null)
+  const queueBtnRef = useRef<HTMLButtonElement>(null)
 
   const qualityLabels: Record<QualityLevel, string> = {
     standard: '标准',
@@ -48,6 +52,61 @@ export function PlayerBar() {
       if (activeItem) {
         activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
+    }
+  }, [showQueue])
+
+  // 桌面歌词状态：挂载查询 + Rust 可见性广播（与设置/托盘严格同步）
+  useEffect(() => {
+    void window.api.lyricsWindow.isVisible().then((v) => setLyricsOn(Boolean(v))).catch(() => {})
+    let un: (() => void) | undefined
+    void import('@tauri-apps/api/event').then(({ listen }) => {
+      void listen('tray:lyrics-visible', (e) => setLyricsOn(Boolean((e.payload as unknown))))
+    }).then((un2) => { un = un2 })
+    return () => { un?.() }
+  }, [])
+
+  // 音质菜单:外点 / Escape 关闭(ref 覆盖按钮 + 菜单,点按钮本身不算外点)
+  useEffect(() => {
+    if (!showQualityMenu) return
+    const handlePointerDown = (e: MouseEvent) => {
+      if (qualityMenuRef.current && !qualityMenuRef.current.contains(e.target as Node)) {
+        setShowQualityMenu(false)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowQualityMenu(false)
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showQualityMenu])
+
+  // 播放队列悬浮面板:外点 / Escape 关闭(点队列按钮本身交给 toggle,避免关了又开)
+  useEffect(() => {
+    if (!showQueue) return
+    const handlePointerDown = (e: MouseEvent) => {
+      const t = e.target as Node
+      const inPanel = queuePanelRef.current?.contains(t)
+      const inBtn = queueBtnRef.current?.contains(t)
+      if (!inPanel && !inBtn) {
+        setShowQueue(false)
+        setMenuTrack(null)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowQueue(false)
+        setMenuTrack(null)
+      }
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
     }
   }, [showQueue])
 
@@ -74,8 +133,8 @@ export function PlayerBar() {
         <div className="player-bar-content">
           <div className="player-track-info" onClick={() => setShowLyrics(true)} style={{ cursor: 'pointer' }}>
             <div className="player-track-cover">
-              {currentTrack?.albumCoverUrl ? (
-                <img src={getCoverUrl(currentTrack.albumCoverUrl, 100)} alt="" />
+              {currentTrack ? (
+                <img src={trackCoverUrl(currentTrack, 100)} alt="" onError={coverImgFallback} />
               ) : (
                 <div className="player-cover-placeholder"><Music size={20} /></div>
               )}
@@ -90,8 +149,8 @@ export function PlayerBar() {
 
           <div className="player-right">
             <VolumeControl volume={volume} isMuted={isMuted} onVolumeChange={setVolume} onToggleMute={toggleMute} />
-            <div style={{ position: 'relative' }}>
-              <button className="player-action-btn" onClick={() => setShowQualityMenu(!showQualityMenu)}>{qualityLabels[quality]}</button>
+            <div ref={qualityMenuRef} style={{ position: 'relative' }}>
+              <button className="player-action-btn player-action-btn-text" onClick={() => setShowQualityMenu(!showQualityMenu)}>{qualityLabels[quality]}</button>
               {showQualityMenu && (
                 <div className="quality-menu" onClick={(e) => e.stopPropagation()}>
                  <div className="add-menu-title">音质</div>
@@ -103,18 +162,18 @@ export function PlayerBar() {
                 </div>
               )}
             </div>
-            <NBTooltip label="桌面歌词"><button className="player-action-btn player-lyrics-btn" aria-label="桌面歌词" onClick={() => window.api.lyricsWindow.toggle()}>词</button></NBTooltip>
-            <NBTooltip label="播放队列"><button className="player-action-btn" aria-label="播放队列" onClick={() => setShowQueue(!showQueue)}><ListMusic size={18} /></button></NBTooltip>
+            <NBTooltip label="桌面歌词"><button className={'player-action-btn player-lyrics-btn' + (lyricsOn ? ' player-action-active' : '')} aria-label="桌面歌词" onClick={() => window.api.lyricsWindow.toggle()}>词</button></NBTooltip>
+            <NBTooltip label="播放队列"><button ref={queueBtnRef} className="player-action-btn" aria-label="播放队列" onClick={() => setShowQueue(!showQueue)}><ListMusic size={18} /></button></NBTooltip>
           </div>
         </div>
       </div>
 
       <FullScreenLyrics isOpen={showLyrics} onClose={() => setShowLyrics(false)} />
 
-      {/* Queue panel */}
+      {/* Queue panel:独立悬浮玻璃面板(无全屏遮罩,外点/Escape 关闭) */}
       {showQueue && (
-        <div className="queue-panel" onClick={() => { setShowQueue(false); setMenuTrack(null) }}>
-          <div className="queue-panel-content" onClick={(e) => e.stopPropagation()}>
+        <div className="queue-panel" ref={queuePanelRef}>
+          <div className="queue-panel-content">
             <div className="queue-header">
               <h3>播放队列 ({displayQueue.length})</h3>
               <div style={{ display: 'flex', gap: 4 }}>

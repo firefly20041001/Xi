@@ -17,6 +17,11 @@ export function SourceBadge({ source, size = 'sm' }: SourceBadgeProps) {
       label: 'QQ音乐',
       color: '#31c27c',
       bgColor: 'rgba(49, 194, 124, 0.15)'
+    },
+    local: {
+      label: '本地',
+      color: '#8fb3d9',
+      bgColor: 'rgba(143, 179, 217, 0.15)'
     }
   }
 

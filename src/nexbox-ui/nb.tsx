@@ -130,7 +130,7 @@ export function NBIconButton({
         border: 'none',
         background: variant === 'window' ? 'var(--nbf-win-bg)' : 'transparent',
         backdropFilter: variant === 'window' ? 'blur(10px)' : undefined,
-        color: 'var(--nbf-fg-window-icon)',
+        color: 'var(--nbf-win-icon)',
         cursor: 'pointer',
         transition: `background var(--nbf-dur-fast) ease, color var(--nbf-dur-fast) ease`
       }}
@@ -142,7 +142,7 @@ export function NBIconButton({
         else if (variant === 'window') e.currentTarget.style.background = 'var(--nbf-win-hover-bg)'
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.color = 'var(--nbf-fg-window-icon)'
+        e.currentTarget.style.color = 'var(--nbf-win-icon)'
         e.currentTarget.style.background =
           variant === 'window' ? 'var(--nbf-win-bg)' : 'transparent'
       }}

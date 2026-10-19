@@ -1,4 +1,4 @@
-export type MusicSource = 'netease' | 'qqmusic'
+export type MusicSource = 'netease' | 'qqmusic' | 'local'
 
 export type QualityLevel = 'standard' | 'high' | 'lossless' | 'hires'
 
@@ -13,6 +13,8 @@ export interface Track {
   duration: number // milliseconds
   quality?: QualityLevel
   vip?: boolean
+  // Local file playback: local audio source only; mapped to URL during playback via the asset protocol
+  filePath?: string
   // Cross-platform mapping
   mappedTrackId?: string
   mappedSource?: MusicSource
@@ -34,6 +36,14 @@ export interface Artist {
   name: string
   avatarUrl?: string
   description?: string
+}
+
+// 本地音乐文件信息(Rust local_scan_directory 返回)
+export interface LocalFileInfo {
+  path: string
+  fileName: string
+  dir: string
+  modifiedMs: number
 }
 
 export interface Playlist {

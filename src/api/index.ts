@@ -26,6 +26,14 @@ async function on(channel: string, cb: Callback) {
 
 async function getAudioOutput() {
   try {
+    // 首次扫描预热麦克风权限（WebView2 需授权后 enumerateDevices 才返回设备名）
+    if (!(window as any).__micWarmed) {
+      ;(window as any).__micWarmed = true
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        stream.getTracks().forEach((t) => t.stop())
+      } catch { /* 权限被拒时仍返回已枚举的设备 */ }
+    }
     const devices = await navigator.mediaDevices.enumerateDevices()
     return devices
       .filter((d) => d.kind === 'audiooutput')
@@ -49,13 +57,15 @@ export function installApi(): void {
     window: {
       minimize: () => void getCurrentWindow().minimize(),
       maximize: () => void getCurrentWindow().toggleMaximize(),
-      close: () => void getCurrentWindow().close()
+      close: () => void getCurrentWindow().close(),
+      show: () => void invoke('show_main_window')
     },
 
     tray: {
       onTogglePlay: (cb) => void on('tray:togglePlay', cb),
       onNext: (cb) => void on('tray:next', cb),
       onPrev: (cb) => void on('tray:prev', cb),
+      onOpenSettings: (cb) => void on('tray:openSettings', cb),
       updateTrack: (trackName, artist) => void invoke('tray_update_track', { trackName, artist }),
       updatePlayingState: (isPlaying) => void invoke('playback_state_changed', { isPlaying }),
       updateCover: (coverUrl) => void invoke('thumbnail_update_cover', { coverUrl })
@@ -97,6 +107,13 @@ export function installApi(): void {
       getCurrentOutput: async () => localStorage.getItem('audioOutputDevice') || 'default',
       setAudioOutput: async (deviceId) => {
         localStorage.setItem('audioOutputDevice', deviceId)
+        // 立即应用到当前音频元素（原先要切歌才生效）
+        try {
+          const el = (window as any).__audioElement
+          if (el && typeof el.setSinkId === 'function') {
+            await el.setSinkId(deviceId && deviceId !== 'default' ? deviceId : 'default')
+          }
+        } catch { /* 设备可能已拔出，切歌时会重试 */ }
         return true
       },
       startListening: () => {
@@ -133,6 +150,12 @@ export function installApi(): void {
 
     lyrics: {
       getLyrics: (request) => invoke('lyrics_get_lyrics', { request })
+    },
+
+    local: {
+      pickDirectories: () => invoke('local_pick_directories'),
+      scanDirectory: (path) => invoke('local_scan_directory', { path }),
+      allowDirectory: (path) => invoke('local_allow_directory', { path })
     },
 
     playlist: {

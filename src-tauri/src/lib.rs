@@ -1,4 +1,5 @@
 mod accounts;
+mod local;
 mod lyrics_win;
 mod net;
 mod playlist;
@@ -12,6 +13,7 @@ use types::*;
 use std::collections::HashMap;
 use tauri::Emitter;
 use tauri::Manager;
+use tauri::window::{Effect, EffectsBuilder};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 pub struct AppState {
@@ -32,6 +34,29 @@ fn tray_update_track(app: tauri::AppHandle, track_name: String, artist: String) 
 #[tauri::command]
 fn playback_state_changed(app: tauri::AppHandle, is_playing: bool) {
     tray::update_playing_state(&app, is_playing);
+}
+
+#[tauri::command]
+fn tray_quit(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+// 主窗口以 visible:false 创建（tauri.conf.json），前端首帧渲染完成后调用本命令拉起，
+// 避免 WebView2 首帧未提交就可见导致的启动黑屏闪烁。
+#[tauri::command]
+fn show_main_window(app: tauri::AppHandle) {
+    // 尊重"启动时最小化到托盘"偏好：保持隐藏
+    if store::get_setting(&app, "settings.minimizeOnStartup")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+    {
+        return;
+    }
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+    }
 }
 
 #[tauri::command]
@@ -289,20 +314,6 @@ async fn streaming_get_toplist(
 }
 
 #[tauri::command]
-async fn streaming_get_daily_recommend(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-    source: String,
-) -> Result<Vec<Track>, String> {
-    Ok(providers::get_daily_recommend(
-        &state.client,
-        &cookies(&app),
-        &source,
-    )
-    .await)
-}
-
-#[tauri::command]
 async fn lyrics_get_lyrics(
     state: tauri::State<'_, AppState>,
     request: LyricsRequest,
@@ -473,16 +484,25 @@ pub fn run() {
                 let _ = w.set_focus();
             }
         }))
+                .on_permission_request(|_app, kind| match kind {
+            tauri::webview::PermissionKind::Microphone => tauri::webview::PermissionResponse::Allow,
+            _ => tauri::webview::PermissionResponse::Default,
+        })
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // 本地音乐目录选择器:必须注册对话框插件,否则 DialogExt.app.dialog() 会 panic
+        // (state() called before manage() for tauri_plugin_dialog::desktop::Dialog)
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             client: net::new_client(),
         })
         .invoke_handler(tauri::generate_handler![
             tray_update_track,
+            tray_quit,
+            show_main_window,
             playback_state_changed,
             thumbnail_update_cover,
             lyrics_window_show,
@@ -506,7 +526,6 @@ pub fn run() {
             streaming_get_liked_songs,
             streaming_get_album,
             streaming_get_toplist,
-            streaming_get_daily_recommend,
             lyrics_get_lyrics,
             playlist_get_all,
             playlist_get_by_id,
@@ -527,7 +546,10 @@ pub fn run() {
             accounts_refresh,
             accounts_get_info,
             accounts_logout,
-            accounts_close_login
+            accounts_close_login,
+            local::local_pick_directories,
+            local::local_scan_directory,
+            local::local_allow_directory
         ])
         .setup(|app| {
             // Restore auto-launch preference
@@ -539,7 +561,50 @@ pub fn run() {
                 let _ = app.autolaunch().enable();
             }
 
+            // 本地音乐:恢复已添加目录的 asset 协议授权,
+            // 保证重启后不经本地音乐页也能恢复播放上次的本地曲目
+            let local_dirs = store::get_setting(app.handle(), "local.dirs")
+                .and_then(|v| v.as_array().cloned())
+                .unwrap_or_default();
+            for d in local_dirs {
+                if let Some(path) = d.as_str() {
+                    let _ = app
+                        .asset_protocol_scope()
+                        .allow_directory(std::path::PathBuf::from(path), true);
+                }
+            }
+
             tray::setup(app)?;
+
+            // Liquid-glass tray menu window (hidden until the tray icon is clicked).
+            // 模糊由 Rust 侧窗口特效提供：Effect::Acrylic 在 Win11 22H2+ 上走
+            // DWMWA_SYSTEMBACKDROP_TYPE(DWMSBT_TRANSIENTWINDOW)=托盘飞出同款系统亚克力，
+            // 不再有老 SWCA 路径的"实心白底"问题（window-vibrancy 0.8+ 的实现）；
+            // Win10 回退 ACCENT_ENABLE_ACRYLICBLURBEHIND。tint/圆角/边框仍由 tray.css 的
+            // 半透明背景绘制，这里的 color 参数留给 Win10 回退路径用。
+            {
+                let _tray_menu = tauri::WebviewWindowBuilder::new(
+                    app,
+                    "tray-menu",
+                    tauri::WebviewUrl::App("tray.html".into()),
+                )
+                .title("希 菜单")
+                .inner_size(240.0, 372.0)
+                .decorations(false)
+                .transparent(true)
+                .resizable(false)
+                .skip_taskbar(true)
+                .always_on_top(true)
+                .visible(false)
+                .shadow(false)
+                .effects(
+                    EffectsBuilder::new()
+                        .effect(Effect::Acrylic)
+                        .build(),
+                )
+                .additional_browser_args("--autoplay-policy=no-user-gesture-required --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection")
+                .build()?;
+            }
 
             register_shortcuts(app.handle());
 

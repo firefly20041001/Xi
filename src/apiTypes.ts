@@ -9,7 +9,8 @@ import {
   Playlist,
   SearchResult,
   SearchRequest,
-  PlaybackInfo
+  PlaybackInfo,
+  LocalFileInfo
 } from './shared/types/streaming'
 import { Lyrics, LyricsRequest } from './shared/types/lyrics'
 import { SyncedPlaylist, PlaylistSyncRequest, PlaylistSyncResult } from './shared/types/playlist'
@@ -19,12 +20,14 @@ export interface ElectronAPI {
     minimize: () => void
     maximize: () => void
     close: () => void
+    show: () => void
   }
 
   tray: {
     onTogglePlay: (callback: () => void) => void
     onNext: (callback: () => void) => void
     onPrev: (callback: () => void) => void
+    onOpenSettings: (callback: () => void) => void
     updateTrack: (trackName: string, artist: string) => void
     updatePlayingState: (isPlaying: boolean) => void
     updateCover: (coverUrl: string) => void
@@ -87,11 +90,16 @@ export interface ElectronAPI {
     getLikedSongs: (source: MusicSource, userId: string) => Promise<Track[]>
     getAlbum: (source: MusicSource, id: string) => Promise<Album>
     getToplist: (topid: number, limit: number) => Promise<Track[]>
-    getDailyRecommend: (source: MusicSource) => Promise<Track[]>
   }
 
   lyrics: {
     getLyrics: (request: LyricsRequest) => Promise<Lyrics | null>
+  }
+
+  local: {
+    pickDirectories: () => Promise<string[]>
+    scanDirectory: (path: string) => Promise<LocalFileInfo[]>
+    allowDirectory: (path: string) => Promise<void>
   }
 
   playlist: {

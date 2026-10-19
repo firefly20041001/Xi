@@ -8,18 +8,21 @@ import { useUIStore } from '../stores/uiStore'
 import { SearchBar } from '../components/common/SearchBar'
 import { TrackList } from '../components/common/TrackList'
 import { GlassPanel } from '../components/common/GlassPanel'
+import { Play } from 'lucide-react'
 
 export function SearchPage() {
   const { results, isLoading, isLoadingMore, hasMore, error, search, loadMore } = useSearch()
-  const { playTrack, playQueue } = usePlayback()
+  const { playTrack, playQueue, playAll } = usePlayback()
   const { searchQuery, searchSource, clearSearchQuery } = useUIStore()
   const [activeSource, setActiveSource] = useState<MusicSource>('qqmusic')
   const [toplist, setToplist] = useState<Track[]>([])
   const [toplistLoading, setToplistLoading] = useState(false)
   const [showToplist, setShowToplist] = useState(true)
   const processedQueryRef = useRef<string | null>(null)
+  const lastQueryRef = useRef<string>('')
 
   const handleSearch = (query: string) => {
+    lastQueryRef.current = query
     setShowToplist(false)
     search(query, activeSource)
   }
@@ -28,6 +31,7 @@ export function SearchPage() {
   useEffect(() => {
     if (searchQuery && processedQueryRef.current !== searchQuery) {
       processedQueryRef.current = searchQuery
+      lastQueryRef.current = searchQuery
       if (searchSource) {
         setActiveSource(searchSource)
       }
@@ -71,7 +75,13 @@ export function SearchPage() {
 
   const handleSourceChange = (source: MusicSource) => {
     setActiveSource(source)
-    setShowToplist(true)
+    // 有关键词时用新音源重搜；无关键词回到榜单
+    if (lastQueryRef.current) {
+      setShowToplist(false)
+      search(lastQueryRef.current, source)
+    } else {
+      setShowToplist(true)
+    }
   }
 
   return (
@@ -112,11 +122,17 @@ export function SearchPage() {
 
       {/* Toplist */}
       {showToplist && !isLoading && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="search-results">
+        <div className="search-results">
           <div className="results-section">
             <h2 className="section-title">
               <TrendingUp size={20} />
               {activeSource === 'qqmusic' ? 'QQ音乐飙升榜' : '网易云热歌榜'}
+              <button className="play-all" title="播放全部" aria-label="播放全部榜单歌曲"
+                disabled={toplistLoading || toplist.length === 0}
+                onClick={() => playAll(toplist)}>
+                <span className="play-all-disc"><Play size={12} fill="currentColor" /></span>
+                播放全部
+              </button>
               <button className="btn btn-ghost btn-sm" onClick={loadToplist}>刷新</button>
             </h2>
             {toplistLoading ? (
@@ -127,12 +143,12 @@ export function SearchPage() {
               <GlassPanel intensity="light" className="empty-state"><Music size={32} /><p>暂无榜单数据</p></GlassPanel>
             )}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Search Results */}
       {results && !isLoading && !showToplist && (
-        <motion.div className="search-results" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <div className="search-results">
           {results.tracks.length > 0 ? (
             <div className="results-section">
               <h2 className="section-title">
@@ -140,6 +156,11 @@ export function SearchPage() {
                 {results.total > results.tracks.length
                   ? `已加载 ${results.tracks.length}/${results.total}`
                   : results.tracks.length})
+                <button className="play-all" title="播放全部" aria-label="播放全部搜索结果"
+                  onClick={() => playAll(results.tracks)}>
+                  <span className="play-all-disc"><Play size={12} fill="currentColor" /></span>
+                  播放全部
+                </button>
               </h2>
               <TrackList tracks={results.tracks} onPlay={handlePlayTrack} />
               {hasMore && (
@@ -153,7 +174,7 @@ export function SearchPage() {
           ) : (
             <div className="search-empty"><Search size={48} /><p>没有找到相关结果</p></div>
           )}
-        </motion.div>
+        </div>
       )}
     </div>
   )

@@ -59,9 +59,10 @@ export function PlayerBar() {
   useEffect(() => {
     void window.api.lyricsWindow.isVisible().then((v) => setLyricsOn(Boolean(v))).catch(() => {})
     let un: (() => void) | undefined
-    void import('@tauri-apps/api/event').then(({ listen }) => {
-      void listen('tray:lyrics-visible', (e) => setLyricsOn(Boolean((e.payload as unknown))))
-    }).then((un2) => { un = un2 })
+    void import('@tauri-apps/api/event').then(({ listen }) =>
+      // 注意不带 void:需要把 listen 的 Promise 传出来挂 unlisten(上版写法 un 恒为 undefined)
+      listen('tray:lyrics-visible', (e) => setLyricsOn(Boolean((e.payload as unknown)))).then((u) => { un = u })
+    )
     return () => { un?.() }
   }, [])
 

@@ -144,6 +144,18 @@ function TrayAndShortcutHandler() {
     wireAppEvents()
   }, [])
 
+  // 屏蔽 WebView2 默认右键菜单:自定义菜单接不到的位置不再弹「返回/刷新/打印」框;
+  // 输入框保留系统菜单(复制/粘贴),自定义菜单自身已 preventDefault 不受影响
+  useEffect(() => {
+    const onCtx = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t?.closest('input, textarea, [contenteditable="true"]')) return
+      e.preventDefault()
+    }
+    document.addEventListener('contextmenu', onCtx)
+    return () => document.removeEventListener('contextmenu', onCtx)
+  }, [])
+
   useEffect(() => {
     // 托盘玻璃菜单:播放状态/主题/外观变化 → 广播（签名去重 + 节流）
     // 注意：歌词可见性不在此广播——由 Rust 侧 tray:lyrics-visible 直接推给托盘窗口

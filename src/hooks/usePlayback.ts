@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { Track } from '@shared/types/streaming'
 import { playSingleTrack, playFromList, playQueue, togglePlay, pause, seek, setVolume, nextTrack, prevTrack, addToPlayQueue, stopAndClear } from '../utils/audio'
+import { usePlaybackStore } from '../stores/playbackStore'
 
 export function usePlayback() {
   const playTrackFn = useCallback(async (track: Track, source?: { page: string; id?: string }) => {
@@ -17,6 +18,7 @@ export function usePlayback() {
 
   const togglePlayFn = useCallback(() => togglePlay(), [])
   const pauseFn = useCallback(() => pause(), [])
+  const toggleMuteFn = useCallback(() => usePlaybackStore.getState().toggleMute(), [])
   const seekFn = useCallback((time: number) => seek(time), [])
   const setVolumeFn = useCallback((v: number) => setVolume(v), [])
   const nextTrackFn = useCallback(() => nextTrack(), [])
@@ -35,6 +37,7 @@ export function usePlayback() {
     nextTrack: nextTrackFn,
     prevTrack: prevTrackFn,
     addToPlayQueue: addToPlayQueueFn,
-    stopAndClear: stopAndClearFn
+    stopAndClear: stopAndClearFn,
+    toggleMute: toggleMuteFn
   }
 }

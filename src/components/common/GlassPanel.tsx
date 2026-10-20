@@ -7,6 +7,8 @@ interface GlassPanelProps {
   intensity?: 'light' | 'medium' | 'heavy'
   hover?: boolean
   onClick?: () => void
+  /** 右键回调(首页主推卡的「复制歌曲信息」等走这里) */
+  onContextMenu?: React.MouseEventHandler<HTMLDivElement>
   style?: React.CSSProperties
   /** 入场自淡入:淡入作用在玻璃元素自身(opacity<1 的祖先会切掉 backdrop-filter 的采样来源,
    *  自身 opacity 不会),配合外层包装层只做 transform 位移动画,全程保持模糊有效 */
@@ -23,6 +25,7 @@ export function GlassPanel({
   intensity = 'medium',
   hover = false,
   onClick,
+  onContextMenu,
   style,
   fadeUp = false,
   fadeDelay = 0,
@@ -39,6 +42,7 @@ export function GlassPanel({
       className={`glass-panel ${intensityMap[intensity]} ${hover ? 'glass-hover' : ''} ${className}`}
       style={style}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       initial={fadeUp ? { opacity: 0, y: 8 } : undefined}
       animate={fadeUp ? { opacity: 1, y: 0 } : undefined}
       exit={fadeUp && fadeExit ? { opacity: 0, y: -6 } : undefined}

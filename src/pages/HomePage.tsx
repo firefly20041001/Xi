@@ -8,9 +8,10 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   Play, Pause, ChevronRight, ListMusic, TrendingUp, Library, Clock, Gem,
-  Music, Sparkles, Rocket, ListEnd
+  Music, Sparkles, Rocket, ListEnd, Copy, Info
 } from 'lucide-react'
 import { GlassPanel } from '../components/common/GlassPanel'
+import { ContextMenu } from '../components/common/ContextMenu'
 import { TrackList } from '../components/common/TrackList'
 import { Track, Playlist, MusicSource } from '@shared/types/streaming'
 import { SyncedPlaylist } from '@shared/types/playlist'
@@ -81,6 +82,17 @@ export function HomePage({ onNavigate }: HomePageProps) {
   // 详情视图:榜单/歌单点卡后展示歌曲列表(替代直接播放)
   const [detail, setDetail] = useState<{ key: string; title: string; subtitle: string; tracks: Track[] } | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  // 首页曲目右键菜单(宝藏行/主推卡):复制歌名 / 复制歌曲信息(同 TrackItem)
+  const [homeMenu, setHomeMenu] = useState<{ x: number; y: number; track: Track } | null>(null)
+  const [copyTip, setCopyTip] = useState<string | null>(null)
+  const copyHomeTrack = async (t: Track, kind: 'name' | 'info') => {
+    try {
+      await navigator.clipboard.writeText(kind === 'name' ? t.name : `${t.name} - ${t.artists.join(', ')} (${t.albumName})`)
+      setHomeMenu(null)
+      setCopyTip(kind === 'name' ? '歌名已复制' : '歌曲信息已复制')
+      setTimeout(() => setCopyTip(null), 1500)
+    } catch { /* 剪贴板不可用时静默 */ }
+  }
 
   // 平台歌单快照(未自动同步的账号线程内补一次)
   const platformProviders = usePlatformPlaylistsStore((s) => s.providers)
@@ -340,7 +352,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
       {/* 主推大卡 + 快捷小卡 */}
       <motion.div className="home-hero" {...fadeUp(1)}>
-        <GlassPanel intensity="medium" hover className="home-hero-main">
+        <GlassPanel intensity="medium" hover className="home-hero-main" onContextMenu={heroTrack ? (e) => { e.preventDefault(); setHomeMenu({ x: e.clientX, y: e.clientY, track: heroTrack }) } : undefined}>
           {heroTrack ? (
             <>
               <div className="hero-text">
@@ -416,7 +428,12 @@ export function HomePage({ onNavigate }: HomePageProps) {
               </div>
             ))
             : treasure.map((t: Track, i: number) => (
-              <div key={`${t.source}:${t.id}`} className="home-song-row" onClick={() => playQueue(treasure, i, { page: 'home', id: 'treasure' })}>
+              <div
+                key={`${t.source}:${t.id}`}
+                className="home-song-row"
+                onClick={() => playQueue(treasure, i, { page: 'home', id: 'treasure' })}
+                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setHomeMenu({ x: e.clientX, y: e.clientY, track: t }) }}
+              >
                 <div className="home-song-cover">
                   <img src={t.albumCoverUrl} alt={t.name} loading="lazy" onError={coverImgFallback} />
                 </div>
@@ -516,6 +533,19 @@ export function HomePage({ onNavigate }: HomePageProps) {
       </motion.section>
       </>
       )}
+
+      {homeMenu && (
+        <ContextMenu
+          x={homeMenu.x}
+          y={homeMenu.y}
+          onClose={() => setHomeMenu(null)}
+          items={[
+            { icon: <Copy size={14} />, label: '复制歌名', onClick: () => void copyHomeTrack(homeMenu.track, 'name') },
+            { icon: <Info size={14} />, label: '复制歌曲信息', onClick: () => void copyHomeTrack(homeMenu.track, 'info') }
+          ]}
+        />
+      )}
+      {copyTip && <div className="copy-feedback">{copyTip}</div>}
     </div>
   )
 }

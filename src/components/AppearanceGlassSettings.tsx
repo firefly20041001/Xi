@@ -97,7 +97,7 @@ export function WallpaperGlassSettings() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <input
             type="range"
-            min={4}
+            min={0}
             max={40}
             value={s.glassBlur}
             onChange={(e) => s.setGlassBlur(Number(e.target.value))}

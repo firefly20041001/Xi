@@ -1,5 +1,6 @@
 // 全局搜索框(标题栏左上角)：同时实测网易云/QQ音乐两平台的歌曲建议。
-// 无 Ctrl+K 召唤；点击外部或 Esc 关闭；↑↓ 选择、Enter 播放选中项并跳到搜索页。
+// 无 Ctrl+K 召唤；点击外部或 Esc 关闭；↑↓ 列内移动行、←→ 切换平台列。
+// 默认无选中不高亮:回车=直接搜索跳页;按↓或悬停选中后,回车=播放选中项并跳到搜索页。
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Search, X, Clock, Sparkles, Search as SearchIcon } from 'lucide-react'
 import { MusicSource, Track } from '@shared/types/streaming'
@@ -67,7 +68,12 @@ export function GlobalSearch() {
   const [isOpen, setIsOpen] = useState(false)
   const [history, setHistory] = useState<string[]>(loadHistory)
   const [groups, setGroups] = useState<Record<SearchSource, GroupState>>(emptyGroups)
-  const [selected, setSelected] = useState(0)
+  // 键盘网格导航两列平台:selCol 0=QQ音乐 1=网易云(SOURCES 顺序),selRow 为列内行号
+  // -1 = 无选中(默认):不高亮任何项,回车视为直接搜索
+  const [selCol, setSelCol] = useState(-1)
+  const [selRow, setSelRow] = useState(-1)
+  // 键盘(↑↓←→)导航期间悬停不抢占高亮,鼠标真正移动后恢复悬停高亮
+  const [kbNav, setKbNav] = useState(false)
   const { setActivePage, setSearchQuery } = useUIStore()
   const { playQueue } = usePlayback()
 
@@ -86,6 +92,10 @@ export function GlobalSearch() {
     }
     const reqId = ++reqIdRef.current
     setGroups({ netease: { tracks: [], loading: true }, qqmusic: { tracks: [], loading: true } })
+    // 关键词变化即清空选中:回到"无选中,回车只搜索"的默认态
+    setSelCol(-1)
+    setSelRow(-1)
+    setKbNav(false)
     debounceRef.current = window.setTimeout(() => {
       for (const { source } of SOURCES) {
         void window.api.streaming.search({ query: q, source, type: ['track'], limit: FETCH_LIMIT })
@@ -124,7 +134,9 @@ export function GlobalSearch() {
   const close = useCallback(() => {
     setIsOpen(false)
     setQuery('')
-    setSelected(0)
+    setSelCol(-1)
+    setSelRow(-1)
+    setKbNav(false)
     inputRef.current?.blur()
   }, [])
 
@@ -167,24 +179,53 @@ export function GlobalSearch() {
       return
     }
     if (!isOpen) return
-    const rows = flat()
+    // 列内行数上限(空列取 0,后续判断自然失效)
+    const colRows = (col: number) => groups[SOURCES[col].source].tracks.length
+    const clampRow = (col: number, row: number) => Math.min(row, Math.max(0, colRows(col) - 1))
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelected((prev) => (prev < rows.length - 1 ? prev + 1 : prev))
+      setKbNav(true)
+      // 无选中 → 先选中 QQ 平台列首行;已有选中 → 列内下移
+      if (selRow < 0) {
+        setSelCol(0)
+        setSelRow(0)
+      } else {
+        setSelRow((prev) => (prev < colRows(selCol) - 1 ? prev + 1 : prev))
+      }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setSelected((prev) => (prev > 0 ? prev - 1 : 0))
+      setKbNav(true)
+      if (selRow <= 0) {
+        // 首行再向上 = 取消选中,回到"回车直接搜索"默认态
+        setSelCol(-1)
+        setSelRow(-1)
+      } else {
+        setSelRow((prev) => prev - 1)
+      }
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault()
+      // ←→ 平台列间切换,行号保持但夹到新列的行数内;无选中时不抢占
+      if (selCol < 0) return
+      const dir = e.key === 'ArrowLeft' ? -1 : 1
+      const next = Math.min(SOURCES.length - 1, Math.max(0, selCol + dir))
+      if (next !== selCol) {
+        setKbNav(true)
+        setSelCol(next)
+        setSelRow((prev) => clampRow(next, prev))
+      }
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (rows[selected]) {
-        playSelected(rows[selected].source, rows[selected].track, rows[selected].index)
+      const source = selCol >= 0 ? SOURCES[selCol]?.source : undefined
+      const track = source ? groups[source].tracks[selRow] : undefined
+      if (source && track) {
+        playSelected(source, track, selRow)
       } else if (query.trim()) {
-        // 无可选结果时,回车视为直接搜索并跳到搜索页
+        // 无选中项:回车直接搜索并跳到搜索页(不播放)
         recordQuery(query)
         openSearchPage()
       }
     }
-  }, [isOpen, flat, selected, playSelected, openSearchPage, recordQuery, query])
+  }, [isOpen, groups, selCol, selRow, playSelected, openSearchPage, recordQuery, query])
 
   const anyLoading = SOURCES.some(({ source }) => groups[source].loading)
   const totalRows = flat().length
@@ -216,7 +257,10 @@ export function GlobalSearch() {
       </div>
 
       {isOpen && (
-        <div className="gs-dd">
+        <div
+          className="gs-dd"
+          onMouseMove={() => { if (kbNav) setKbNav(false) }}
+        >
           {/* 空态:搜索记录 + 默认推荐 */}
           {!query.trim() && (
             <>
@@ -234,7 +278,7 @@ export function GlobalSearch() {
                       key={`h-${i}`}
                       className="gs-item gs-hist"
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => { setQuery(h); setSelected(0) }}
+                      onClick={() => { setQuery(h); setSelCol(-1); setSelRow(-1); setKbNav(false) }}
                     >
                       <Clock size={13} className="gs-clock" />
                       <span className="gs-item-name gs-hist-text">{h}</span>
@@ -262,7 +306,7 @@ export function GlobalSearch() {
                         key={song.name}
                         className="gs-item"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => { setQuery(song.name); setSelected(0) }}
+                        onClick={() => { setQuery(song.name); setSelCol(-1); setSelRow(-1); setKbNav(false) }}
                       >
                         <span className="gs-item-name">{song.name}</span>
                         <span className="gs-item-artist">{song.artist}</span>
@@ -278,11 +322,9 @@ export function GlobalSearch() {
             {showNoResult && (
               <div className="gs-hint gs-cols-span"><SearchIcon size={14} /><span>没有找到"{query.trim()}"的结果</span></div>
             )}
-            {SOURCES.map(({ source, label, color }) => {
+            {SOURCES.map(({ source, label, color }, colIdx) => {
               const g = groups[source]
               if (!g.loading && g.tracks.length === 0) return null
-              const baseIdx = SOURCES.slice(0, SOURCES.findIndex((s) => s.source === source))
-                .reduce((n, s) => n + groups[s.source].tracks.length, 0)
               return (
                 <div key={source} className="gs-group">
                   <div className="gs-group-head">
@@ -290,22 +332,19 @@ export function GlobalSearch() {
                     <span>{label}</span>
                   </div>
                   {g.loading && g.tracks.length === 0 && <div className="gs-hint gs-hint-sm">搜索中...</div>}
-                  {g.tracks.map((track, index) => {
-                    const rowIdx = baseIdx + index
-                    return (
-                      <button
-                        type="button"
-                        key={`${source}:${track.id}`}
-                        className={`gs-item ${rowIdx === selected ? 'gs-item-active' : ''}`}
-                        onMouseEnter={() => setSelected(rowIdx)}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => playSelected(source, track, index)}
-                      >
-                        <span className="gs-item-name">{track.name}</span>
-                        <span className="gs-item-artist">{(track.artists || []).join(', ')}</span>
-                      </button>
-                    )
-                  })}
+                  {g.tracks.map((track, index) => (
+                    <button
+                      type="button"
+                      key={`${source}:${track.id}`}
+                      className={`gs-item ${selCol === colIdx && selRow === index ? 'gs-item-active' : ''}`}
+                      onMouseEnter={() => { if (!kbNav) { setSelCol(colIdx); setSelRow(index) } }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => playSelected(source, track, index)}
+                    >
+                      <span className="gs-item-name">{track.name}</span>
+                      <span className="gs-item-artist">{(track.artists || []).join(', ')}</span>
+                    </button>
+                  ))}
                 </div>
               )
             })}

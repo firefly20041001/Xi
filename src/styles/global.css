@@ -92,9 +92,17 @@ html, body, #root {
   overflow: hidden;
 }
 
+/* 内置可变字体(NexBox 同源):MiSans,覆盖 100~900 全字重 */
+@font-face {
+  font-family: 'MiSans';
+  src: url('/fonts/MiSansVF.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
-    'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-family: var(--app-font, 'MiSans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: transparent;
@@ -179,6 +187,14 @@ body {
 .btn-sm {
   padding: 4px 8px;
   font-size: 12px;
+}
+
+/* 纯图标按钮压成正圆:默认胶囊圆角 + 固定高度会把无文字的图标本拉成椭圆 */
+.btn-icon-round {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
 }
 
 /* Loading Spinner */

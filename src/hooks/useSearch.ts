@@ -9,7 +9,7 @@ interface UseSearchReturn {
   isLoadingMore: boolean
   hasMore: boolean
   error: string | null
-  search: (query: string, source?: MusicSource) => Promise<void>
+  search: (query: string, source?: MusicSource, searchType?: 'track' | 'playlist') => Promise<void>
   loadMore: () => Promise<void>
   clearResults: () => void
 }
@@ -21,7 +21,7 @@ export function useSearch(): UseSearchReturn {
   const [error, setError] = useState<string | null>(null)
   const lastQueryRef = useRef<{ query: string; source: MusicSource } | null>(null)
 
-  const search = useCallback(async (query: string, source: MusicSource = 'netease') => {
+  const search = useCallback(async (query: string, source: MusicSource = 'netease', searchType: 'track' | 'playlist' = 'track') => {
     if (!query.trim()) return
 
     lastQueryRef.current = { query: query.trim(), source }
@@ -32,7 +32,7 @@ export function useSearch(): UseSearchReturn {
       const request: SearchRequest = {
         query: query.trim(),
         source,
-        type: ['track'],
+        type: [searchType],
         limit: PAGE_SIZE
       }
 

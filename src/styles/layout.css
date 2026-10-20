@@ -74,18 +74,18 @@
   z-index: 10;
   /* 页头与内容的统一间距:28px,各页面内容首行不再自带 margin */
   margin: 0 -24px 28px;
-  /* 页头蒙板:亮色白蒙板 / 暗色深蒙板(用户偏好保留磨砂带) */
-  background: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  /* 页头蒙板:跟随全局玻璃变量(--nb-glass),关闭液态玻璃时与面板一致切到实底 */
+  background: var(--nb-glass);
+  backdrop-filter: blur(var(--nb-glass-blur, 18px)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--nb-glass-blur, 18px)) saturate(150%);
+  border-bottom: 1px solid var(--nb-glass-border, rgba(255, 255, 255, 0.25));
   border-radius: 16px;
 }
 
 :root[data-theme='dark'] .page-header {
-  background: rgba(8, 12, 24, 0.35);
+  background: var(--nb-glass);
   border-radius: 16px;
-  border-bottom-color: rgba(255, 255, 255, 0.05);
+  border-bottom-color: var(--nb-glass-border, rgba(255, 255, 255, 0.05));
 }
 
 .page-header h1 {

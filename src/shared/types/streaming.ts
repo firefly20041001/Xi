@@ -94,7 +94,6 @@ export interface StreamingProviderInterface {
   resolvePlayback(id: string, quality: QualityLevel): Promise<PlaybackInfo>
   getPlaylist(id: string): Promise<Playlist>
   getUserPlaylists(userId: string): Promise<Playlist[]>
-  getLikedSongs(userId: string): Promise<Track[]>
   getAlbum(id: string): Promise<Album>
   getArtist(id: string): Promise<Artist>
 }

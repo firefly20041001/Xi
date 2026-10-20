@@ -149,12 +149,15 @@
 }
 
 /* Track Info */
+/* 固定占位:歌名长短不再挤压/推移中间控制图标组 */
 .player-track-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 200px;
+  flex: 0 0 300px;
+  width: 300px;
   max-width: 300px;
+  min-width: 300px;
 }
 
 .player-track-cover {
@@ -213,6 +216,9 @@
   margin-top: 8px;
   flex: 1;
   min-width: 200px;
+  /* 左段(歌曲区)300 右段(功能区)200,互补 100px 空隙:播放键落在整个控制栏正中,
+     上一首/下一首随组整体左移 50px,居中恒定不随两端内容变化 */
+  padding-right: 160px;
 }
 
 .control-btn {
@@ -281,11 +287,14 @@
 }
 
 /* Right Section */
+/* 固定占位:画质/队列等文案宽度变化也不推移控制图标组 */
 .player-right {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 0 0 200px;
   min-width: 200px;
+  max-width: 200px;
   justify-content: flex-end;
 }
 

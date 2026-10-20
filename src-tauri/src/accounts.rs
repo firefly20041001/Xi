@@ -7,9 +7,6 @@ use tauri::{AppHandle, Manager, Url};
 
 pub struct LoginConfig {
     pub url: &'static str,
-    #[allow(dead_code)]
-    pub cookie_domain: &'static str,
-    pub required: &'static [&'static str],
     pub title: &'static str,
 }
 
@@ -17,17 +14,47 @@ pub fn login_config(provider: &str) -> Option<LoginConfig> {
     match provider {
         "netease" => Some(LoginConfig {
             url: "https://music.163.com/",
-            cookie_domain: "https://music.163.com/",
-            required: &["MUSIC_U"],
             title: "登录 网易云音乐",
         }),
         "qqmusic" => Some(LoginConfig {
             url: "https://y.qq.com/",
-            cookie_domain: "https://y.qq.com/",
-            required: &["uin", "qqmusic_key", "qm_keyst"],
             title: "登录 QQ音乐",
         }),
         _ => None,
+    }
+}
+
+/// 判定轮询采集的 cookies 是否构成"真正登录"。
+/// 不能只看 required 里任一 cookie 存在:游客打开 y.qq.com 也会被种
+/// `uin=o0`(部分场景还带空值 key cookie),旧逻辑在首个 1.5s 轮询就
+/// 误判"登录成功"并立刻关窗。
+/// 因此:网易云要求 MUSIC_U 非空;QQ 要求真实 uin(去 o 前缀后非 "0")
+/// 且 qqmusic_key / qm_keyst 任一非空(真实 key 远长于 16 字符)。
+pub fn login_satisfied(
+    provider: &str,
+    cookies: &std::collections::HashMap<String, String>,
+) -> bool {
+    match provider {
+        "netease" => cookies.get("MUSIC_U").map(|v| !v.is_empty()).unwrap_or(false),
+        "qqmusic" => {
+            let real_uin = cookies
+                .get("uin")
+                .map(|raw| {
+                    let u = raw.strip_prefix('o').unwrap_or(raw);
+                    !u.is_empty() && u != "0"
+                })
+                .unwrap_or(false);
+            let key_ok = cookies
+                .get("qqmusic_key")
+                .map(|v| v.len() > 16)
+                .unwrap_or(false)
+                || cookies
+                    .get("qm_keyst")
+                    .map(|v| v.len() > 16)
+                    .unwrap_or(false);
+            real_uin && key_ok
+        }
+        _ => false,
     }
 }
 
@@ -266,7 +293,7 @@ pub async fn open_login(app: AppHandle, provider: String) -> Result<bool, String
                 collected.insert(c.name().to_string(), c.value().to_string());
             }
         }
-        if config.required.iter().any(|r| collected.contains_key(*r)) {
+        if login_satisfied(&provider, &collected) {
             let cookie_str = collected
                 .iter()
                 .map(|(k, v)| format!("{k}={v}"))

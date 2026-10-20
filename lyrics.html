@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>希 歌词</title>
   <style>
+    /* QQ音乐风格桌面悬浮歌词:
+       尺寸/配色由 lyrics-main.ts 按设置即时写内联样式;这里只放布局骨架 */
+    /* 内置字体:MiSans(与主窗同源) */
+    @font-face {
+      font-family: 'MiSans';
+      src: url('/fonts/MiSansVF.ttf') format('truetype');
+      font-weight: 100 900;
+      font-display: swap;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       height: 100%;
@@ -17,79 +26,158 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      font-family: 'Segoe UI', 'Microsoft YaHei', -apple-system, sans-serif;
     }
-    .lyrics-container {
-      text-align: center;
-      padding: 16px 32px;
-      border-radius: 16px;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      max-width: 90%;
-      -webkit-app-region: drag;
-    }
-    .lyrics-container.locked {
-      -webkit-app-region: no-drag;
-    }
-    .lyrics-line {
-      font-size: 28px;
-      font-weight: 600;
-      color: #ffffff;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-      line-height: 1.4;
-      transition: all 0.3s ease;
-    }
-    .lyrics-translation {
-      font-size: 16px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-top: 4px;
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-    }
-    .lyrics-empty {
-      font-size: 20px;
-      color: rgba(255, 255, 255, 0.4);
-      font-weight: 400;
-    }
-    .controls {
-      position: absolute;
-      top: 4px;
-      right: 8px;
+
+    /* 外框(气泡):始终铺满整个窗口(窗口即气泡),可见范围=实际范围,杜绝透明死角;
+       底色/圆角由设置驱动(锁定时整层透明) */
+    #dlw {
+      position: relative;
       display: flex;
-      gap: 4px;
-      -webkit-app-region: no-drag;
-      opacity: 0;
-      transition: opacity 0.2s;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 12px 30px 14px;
+      color: #fff;
     }
-    .lyrics-container:hover .controls {
-      opacity: 1;
-    }
-    .control-btn {
-      width: 24px;
-      height: 24px;
-      border: none;
-      background: rgba(255,255,255,0.15);
-      color: white;
-      border-radius: 50%;
-      cursor: pointer;
+
+    /* 悬停控制行:absolute 悬浮在顶部预留带,显隐只过渡透明度,不推挤歌词(无跳动) */
+    .dlw-controls {
+      position: absolute;
+      top: 5px;
+      left: 0;
+      right: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      gap: 6px;
+      height: 30px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
     }
-    .control-btn:hover {
-      background: rgba(255,255,255,0.3);
+    #dlw:hover .dlw-controls {
+      opacity: 1;
+      pointer-events: auto;
     }
+    /* 锁定:整窗鼠标穿透后浏览器永远收不到新的 hover 事件,:hover 会卡死常显。
+       显隐改由锁定类驱动(特异性与上一条同级、位置在后故胜出) */
+    #dlw.dlw-locked .dlw-controls {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .dlw-ctl {
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      border-radius: 999px;
+      background: transparent;
+      color: rgba(255,255,255,0.85);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .dlw-ctl:hover { background: rgba(255,255,255,0.18); color: #fff; }
+    .dlw-ctl svg { display: block; }
+    .dlw-ctl-play {
+      width: 28px;
+      height: 28px;
+      background: rgba(255,255,255,0.22);
+      color: #fff;
+    }
+    .dlw-ctl-play:hover { background: rgba(255,255,255,0.34); }
+    .dlw-ctl-on { color: var(--nb-accent, #98DDD0); }
+    .dlw-sep {
+      width: 1px;
+      height: 16px;
+      background: rgba(255,255,255,0.28);
+      margin: 0 4px;
+    }
+
+    /* 顶部 34px 预留带:给悬浮控制行使位(5px + 30px);歌词区填满剩余空间并纵向居中 */
+    #dlw-lines {
+      flex: 1;
+      min-height: 0;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-top: 34px;
+    }
+
+    /* 窗口贴住屏幕上边时:控制预约带翻到底部,按钮出现在歌词下方与屏幕边缘错开 */
+    #dlw.dlw-at-top .dlw-controls {
+      top: auto;
+      bottom: 5px;
+    }
+    #dlw.dlw-at-top #dlw-lines {
+      padding-top: 0;
+      padding-bottom: 34px;
+    }
+    /* 右下角拖拽手柄:未锁定悬停出现,拖动调窗口大小(字号自适应) */
+    #dlw-grip {
+      position: absolute;
+      right: 2px;
+      bottom: 1px;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      cursor: nwse-resize;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+    }
+    #dlw:hover #dlw-grip {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #dlw.dlw-locked #dlw-grip {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* 歌词行:颜色由 JS 写 --dlw-color */
+    .dlw-line {
+      line-height: 1.32;
+      font-weight: 700;
+      white-space: nowrap;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--dlw-color, #fff);
+      transition: all 0.25s ease;
+    }
+    .dlw-second {
+      font-size: 0.62em;   /* 相对主行缩放,JS 直接以 px 覆写主行;次行按比例 */
+      opacity: 0.92;
+      margin-top: 2px;
+    }
+    .dlw-empty {
+      color: rgba(255,255,255,0.45);
+      font-weight: 400;
+    }
+    .dlw-hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <div class="lyrics-container" id="lyrics-container" data-tauri-drag-region>
-    <div class="controls">
-      <button class="control-btn" id="lock-btn" title="锁定/解锁">🔓</button>
-      <button class="control-btn" id="close-btn" title="关闭">✕</button>
+  <div id="dlw">
+    <div class="dlw-controls" id="dlw-controls"></div>
+    <div id="dlw-lines">
+      <div class="dlw-line" id="dlw-current" data-tauri-drag-region>等待播放...</div>
+      <div class="dlw-line dlw-second" id="dlw-second" data-tauri-drag-region></div>
     </div>
-    <div class="lyrics-line" id="lyrics-line">等待播放...</div>
-    <div class="lyrics-translation" id="lyrics-translation"></div>
+    <div id="dlw-grip" title="拖拽调整窗口大小(字号自适应)">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M13 1L5 9M13 6l-4 4M13 11l-1 1" stroke="rgba(255,255,255,0.8)" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </div>
   </div>
 
   <script type="module" src="/src/lyrics-main.ts"></script>

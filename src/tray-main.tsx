@@ -2,7 +2,7 @@
 // 状态由主窗口经 `tray:state` 广播;操作经 `tray:action` 发回主窗口执行。
 import React, { useEffect, useState, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
-import { SkipBack, SkipForward, Play, Pause, Heart, Volume2, Type, Monitor, Settings, Power } from 'lucide-react'
+import { SkipBack, SkipForward, Play, Pause, Heart, Volume2, Type, Lock, LockOpen, Monitor, Settings, Power } from 'lucide-react'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { invoke } from '@tauri-apps/api/core'
@@ -18,6 +18,7 @@ interface TrayState {
   liquidGlass: boolean
   glassBlur: number
   lyricsVisible: boolean
+  lyricsLocked: boolean
 }
 
 const DEFAULT_STATE: TrayState = {
@@ -29,7 +30,8 @@ const DEFAULT_STATE: TrayState = {
   accent: '#98DDD0',
   liquidGlass: true,
   glassBlur: 18,
-  lyricsVisible: false
+  lyricsVisible: false,
+  lyricsLocked: false
 }
 
 function applyAppearance(s: Pick<TrayState, 'theme' | 'accent' | 'liquidGlass' | 'glassBlur'>) {
@@ -58,18 +60,21 @@ function TrayMenu() {
     import('@tauri-apps/api/event').then(({ emit }) => emit('tray:action', { type, value }))
   }, [])
 
-  // 从 Rust 读取歌词窗真实可见性（打开菜单/获得焦点时校正徽章）
-  const syncLyricsBadge = useCallback(async () => {
+  // 从 Rust 读取歌词窗真实可见性与锁定态（打开菜单/获得焦点时校正徽章）
+  const syncLyricsState = useCallback(async () => {
     try {
-      const v = await invoke<boolean>('lyrics_window_is_visible')
-      setSt((prev) => ({ ...prev, lyricsVisible: v }))
+      const [v, l] = await Promise.all([
+        invoke<boolean>('lyrics_window_is_visible'),
+        invoke<boolean>('lyrics_window_is_locked')
+      ])
+      setSt((prev) => ({ ...prev, lyricsVisible: v, lyricsLocked: l }))
     } catch { /* ignore */ }
   }, [])
 
   useEffect(() => {
     const win = getCurrentWebviewWindow()
     void win.onFocusChanged(({ payload: focused }) => {
-      if (focused) void syncLyricsBadge()
+      if (focused) void syncLyricsState()
       else void win.hide()
     })
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') void win.hide() }
@@ -85,6 +90,10 @@ function TrayMenu() {
     // 歌词窗可见性：Rust 侧 show/hide/销毁都会广播
     const unlistenLyrics = listen<boolean>('tray:lyrics-visible', (e) => {
       setSt((prev) => ({ ...prev, lyricsVisible: e.payload }))
+    })
+    // 锁定态：托盘/悬浮窗/设置页任何一处改动都会由 Rust 广播
+    const unlistenLock = listen<boolean>('tray:lyrics-locked', (e) => {
+      setSt((prev) => ({ ...prev, lyricsLocked: e.payload }))
     })
 
     // 初始歌词徽章:查询歌词窗真实可见性
@@ -114,6 +123,7 @@ function TrayMenu() {
     return () => {
       void unlisten.then((f) => f())
       void unlistenLyrics.then((f) => f())
+      void unlistenLock.then((f) => f())
       window.removeEventListener('keydown', onKey)
     }
   }, [])
@@ -179,6 +189,22 @@ function TrayMenu() {
         <span>显示桌面歌词</span>
         <span className={`tray-check ${st.lyricsVisible ? 'on' : ''}`}>{st.lyricsVisible ? '开' : '关'}</span>
       </button>
+
+      {/* 锁定/解锁桌面歌词：仅歌词窗可见时出现，直调 Rust 命令并乐观翻转徽章。
+          锁定后悬浮窗整窗鼠标穿透，托盘与设置页是唯一的解锁入口 */}
+      {st.lyricsVisible && (
+        <button
+          className={`tray-row tray-row-btn ${st.lyricsLocked ? 'tray-row-active' : ''}`}
+          onClick={() => {
+            void invoke('lyrics_window_toggle_lock')
+            setSt((prev) => ({ ...prev, lyricsLocked: !prev.lyricsLocked }))
+          }}
+        >
+          {st.lyricsLocked ? <Lock size={16} style={{ flexShrink: 0 }} /> : <LockOpen size={16} style={{ flexShrink: 0 }} />}
+          <span>锁定桌面歌词</span>
+          <span className={`tray-check ${st.lyricsLocked ? 'on' : ''}`}>{st.lyricsLocked ? '已锁' : '未锁'}</span>
+        </button>
+      )}
 
       <div className="tray-divider" />
 

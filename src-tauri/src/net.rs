@@ -42,6 +42,30 @@ pub fn qq_headers(cookie: &str) -> Vec<(&'static str, String)> {
     h
 }
 
+/// QQ 请求但指定 Referer(个人主页端点要求 profile.html,否则返回空)
+pub fn qq_headers_referer(cookie: &str, referer: &str) -> Vec<(&'static str, String)> {
+    let mut h: Vec<(&'static str, String)> = vec![
+        ("Referer", referer.to_string()),
+        ("Origin", "https://y.qq.com".into()),
+    ];
+    if !cookie.is_empty() {
+        h.push(("Cookie", cookie.to_string()));
+    }
+    h
+}
+
+/// 从 Cookie 串中取指定 key 的原值(如 qm_keyst,用于 musicu authst)
+pub fn cookie_value(cookie: &str, name: &str) -> String {
+    let pat = format!("{}=", name.to_lowercase());
+    let lower = cookie.to_lowercase();
+    if let Some(idx) = lower.find(&pat) {
+        let rest = &cookie[idx + pat.len()..];
+        let end = rest.find(';').unwrap_or(rest.len());
+        return rest[..end].trim().to_string();
+    }
+    String::new()
+}
+
 pub fn uin_from_cookie(cookie: &str) -> String {
     for name in [
         "uin",
@@ -97,6 +121,20 @@ pub fn gtk_from_cookie(cookie: &str) -> i64 {
     5381
 }
 
+/// 把 surfacing 响应统一解析为 JSON(状态码/HTML 防线)
+async fn parse_json_response(resp: reqwest::Response) -> Result<Value> {
+    let status = resp.status();
+    let text = resp.text().await?;
+    if !status.is_success() {
+        return Err(anyhow!("HTTP {}", status));
+    }
+    let trimmed = text.trim_start();
+    if trimmed.starts_with("<!DOCTYPE") || trimmed.starts_with("<html") {
+        return Err(anyhow!("API returned HTML instead of JSON"));
+    }
+    Ok(serde_json::from_str(&text)?)
+}
+
 pub async fn fetch_json(
     client: &Client,
     url: &str,
@@ -115,16 +153,24 @@ pub async fn fetch_json(
         req = req.json(&b);
     }
     let resp = req.send().await?;
-    let status = resp.status();
-    let text = resp.text().await?;
-    if !status.is_success() {
-        return Err(anyhow!("HTTP {}", status));
+    parse_json_response(resp).await
+}
+
+/// form 表单 POST 取 JSON(对照 NexBox post_api:NetEase 端点要求
+/// application/x-www-form-urlencoded 而非 JSON body)
+pub async fn fetch_json_form(
+    client: &Client,
+    url: &str,
+    headers: Vec<(&'static str, String)>,
+    params: &[(&str, &str)],
+    timeout_secs: u64,
+) -> Result<Value> {
+    let mut req = client.post(url).timeout(Duration::from_secs(timeout_secs));
+    for (k, v) in headers {
+        req = req.header(k, v);
     }
-    let trimmed = text.trim_start();
-    if trimmed.starts_with("<!DOCTYPE") || trimmed.starts_with("<html") {
-        return Err(anyhow!("API returned HTML instead of JSON"));
-    }
-    Ok(serde_json::from_str(&text)?)
+    let resp = req.form(params).send().await?;
+    parse_json_response(resp).await
 }
 
 pub async fn fetch_text(

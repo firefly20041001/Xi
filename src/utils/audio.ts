@@ -203,7 +203,9 @@ export function initAudio() {
         lastLyricIndex = index
         const line = lyrics.lines[index]
         if (line) {
-          try { window.api.lyricsWindow.updateLine(line.text, line.translation) } catch {}
+          // 附带下一句:双行模式下译文缺失时回退显示
+          const next = (index + 1 < lyrics.lines.length ? lyrics.lines[index + 1]?.text : undefined) || undefined
+          try { window.api.lyricsWindow.updateLine(line.text, line.translation, next) } catch {}
         }
       }
     }

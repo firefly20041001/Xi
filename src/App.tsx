@@ -10,6 +10,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { LocalMusicPage } from './pages/LocalMusicPage'
 import { useAccountStore } from './stores/accountStore'
+import { usePlatformPlaylistsStore } from './stores/platformPlaylistsStore'
 import { usePlaylistStore } from './stores/playlistStore'
 import { useUIStore } from './stores/uiStore'
 import { usePlaybackStore } from './stores/playbackStore'
@@ -58,12 +59,25 @@ function wireAppEvents() {
           if (action === 'exit') {
             void import('@tauri-apps/api/core').then(({ invoke }) => invoke('tray_quit'))
           } else {
+            // 收进托盘:停渲染 + 卸页面树(<audio> 藏树里照样发声);托盘唤醒时还原
+            useUIStore.getState().setMainHidden(true)
+            useUIStore.getState().setTrayParked(true)
             void win.hide()
           }
         } catch {
+          useUIStore.getState().setMainHidden(true)
+          useUIStore.getState().setTrayParked(true)
           void win.hide()
         }
       })
+    })
+  } catch { /* non-tauri env */ }
+
+  // 窗口不可见(托盘隐藏/最小化) → 停渲染;复见 → 恢复。
+  // 双通道:上面显式置位之外,visibilitychange 兜住所有 hide/show 来源(含系统级)
+  try {
+    document.addEventListener('visibilitychange', () => {
+      useUIStore.getState().setMainHidden(document.visibilityState !== 'visible')
     })
   } catch { /* non-tauri env */ }
 
@@ -79,6 +93,8 @@ function wireAppEvents() {
         case 'showMain': {
           // 主窗口自行拉起(隐藏时 webview 仍可收到事件):不依赖新 Rust 命令,
           // 也不受 minimizeOnStartup 开机偏好影响
+          useUIStore.getState().setMainHidden(false)
+          useUIStore.getState().setTrayParked(false)
           void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
             const w = getCurrentWindow()
             void w.show()
@@ -88,9 +104,28 @@ function wireAppEvents() {
           break
         }
         case 'settings': {
+          // 托盘「设置」:主窗处于隐藏(×收托盘)时也要拉起,否则 setFocus 落空
           useUIStore.getState().setActivePage('settings')
+          useUIStore.getState().setMainHidden(false)
+          useUIStore.getState().setTrayParked(false)
           void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
-            void getCurrentWindow().setFocus()
+            const w = getCurrentWindow()
+            void w.show()
+            void w.unminimize()
+            void w.setFocus()
+          })
+          break
+        }
+        case 'lyricsSettings': {
+          // 悬浮歌词控制条上的「设置」:直接跳到位「桌面悬浮歌词」分区,并拉起主窗口
+          useUIStore.getState().requestSettingsSection('lyrics')
+          useUIStore.getState().setMainHidden(false)
+          useUIStore.getState().setTrayParked(false)
+          void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+            const w = getCurrentWindow()
+            void w.show()
+            void w.unminimize()
+            void w.setFocus()
           })
           break
         }
@@ -179,6 +214,15 @@ export default function App() {
   const { activePage, setActivePage } = useUIStore()
   const { loadAccounts } = useAccountStore()
   const { theme } = useUIStore()
+  // 主窗收进托盘后整树 display:none 停渲染;<audio> 隐藏不影响发声
+  const mainHidden = useUIStore((s) => s.mainHidden)
+  // 仅 × 收托盘卸页面树;最小化只停渲染不卸载(恢复不闪重取)
+  const trayParked = useUIStore((s) => s.trayParked)
+
+  // 同步提示 WebView2 修剪缓存/降合成(JS、音频不受影响),复见时恢复常态
+  useEffect(() => {
+    try { void window.api.settings.setWebviewMemoryTrimming(mainHidden) } catch { /* non-tauri env */ }
+  }, [mainHidden])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -187,6 +231,12 @@ export default function App() {
   useEffect(() => {
     loadAccounts()
     usePlaylistStore.getState().refreshPlaylists()
+    // 平台歌单自动同步:账号装载后即刻同步;之后登录/登出变化实时跟进
+    usePlatformPlaylistsStore.getState().syncAll(useAccountStore.getState().accounts)
+    const unsubAccounts = useAccountStore.subscribe((state) => {
+      usePlatformPlaylistsStore.getState().syncAll(state.accounts)
+    })
+    return unsubAccounts
   }, [])
 
   const renderPage = () => {
@@ -206,9 +256,13 @@ export default function App() {
   return (
     <>
       <TrayAndShortcutHandler />
-      <Layout>
-        {renderPage()}
-      </Layout>
+      {/* 停渲染壳:仅收托盘期间生效,恢复可见自动还展示 */}
+      <div style={mainHidden ? { display: 'none' } : undefined}>
+        <Layout>
+          {/* ×收托盘期间卸载整棵页面树(网格/大量 DOM 释放);侧栏与播放栏(App 内常驻)保命 */}
+          {trayParked ? null : renderPage()}
+        </Layout>
+      </div>
     </>
   )
 }

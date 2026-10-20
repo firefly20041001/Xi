@@ -1,7 +1,7 @@
 // Tray icon: left/right click toggles the liquid-glass menu window
 // ("tray-menu"). Tooltip/title reflect the current track.
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
-use tauri::{App, Manager, PhysicalPosition};
+use tauri::{App, Emitter, Manager, PhysicalPosition};
 use std::sync::Mutex;
 
 pub struct TrayState {
@@ -56,6 +56,9 @@ pub fn show_main(app: &tauri::AppHandle) {
         let _ = win.unminimize();
         let _ = win.show();
         let _ = win.set_focus();
+        // 通知前端解除「收进托盘停渲染/卸页面树」门:
+        // visibilitychange 在部分环境不触发,漏了就是白屏
+        let _ = win.emit("tray:action", serde_json::json!({ "type": "showMain" }));
     }
 }
 

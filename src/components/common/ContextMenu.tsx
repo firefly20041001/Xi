@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Copy, Music, Info } from 'lucide-react'
 
 interface ContextMenuProps {
@@ -70,7 +71,10 @@ export function ContextMenu({ x, y, onClose, items }: ContextMenuProps) {
     }
   }, [x, y])
 
-  return (
+  // 经 portal 挂到 body:固定定位不能再被带 backdrop-filter/transform 的
+  // 祖先(如 .track-list 玻璃背板)劫持为"相对该祖先"的坐标系,
+  // 否则 clientX/clientY 会让菜单错位到列表内部。
+  return createPortal(
     <div
       ref={menuRef}
       className="context-menu"
@@ -90,6 +94,7 @@ export function ContextMenu({ x, y, onClose, items }: ContextMenuProps) {
           <span>{item.label}</span>
         </button>
       ))}
-    </div>
+    </div>,
+    document.body
   )
 }

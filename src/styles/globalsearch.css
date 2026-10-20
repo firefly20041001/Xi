@@ -69,7 +69,10 @@
   left: 0;
   z-index: 1100;
   width: 540px;
-  max-height: min(420px, calc(100vh - 88px));
+  /* 高度固定:不随内容伸缩(空态/加载/结果态尺寸一致),内容超出在面板内滚动 */
+  height: min(420px, calc(100vh - 88px));
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 6px;
@@ -85,7 +88,9 @@
 /* 两平台并排(实测结果/推荐共用) */
 .gs-cols {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0,1fr):1fr 默认允许被内容最小宽度撑宽,长歌名+长歌手会把所在列撑大
+     (对面列被挤窄);minmax(0,1fr) 强制两列严格对半,超出部分靠省略号截断 */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: 10px;
   align-items: start;
 }
@@ -116,6 +121,7 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-width: 0;
 }
 
 .gs-group-head {
@@ -200,7 +206,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
+  /* 常驻面板底部(面板为固定高度的 flex column) */
+  margin-top: auto;
   padding: 8px 10px;
   border: none;
   border-radius: 10px;

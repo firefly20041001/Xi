@@ -81,13 +81,16 @@ export function installApi(): void {
       onUpdate: (cb) => void on('lyrics:update', cb),
       onSettings: (cb) => void on('lyrics:settings', cb),
       onSettingsChanged: (cb) => void on('lyrics-settings:changed', cb),
-      updateLine: (line, translation) => void invoke('lyrics_update_line', { line, translation })
+      updateLine: (line, translation, next) => void invoke('lyrics_update_line', { line, translation, nextLine: next })
     },
 
     settings: {
       get: (key, defaultValue) => invoke('settings_get', { key, defaultValue: defaultValue ?? null }),
       set: (key, value) => invoke('settings_set', { key, value }),
-      setAutoLaunch: (enabled) => invoke('app_set_autolaunch', { enabled })
+      getWindowsUsername: () => invoke('app_get_windows_username'),
+      setAutoLaunch: (enabled) => invoke('app_set_autolaunch', { enabled }),
+      // 主窗收进托盘期间让 WebView2 修剪内存(false=恢复常态)
+      setWebviewMemoryTrimming: (low) => invoke('app_set_webview_memory_trimming', { low })
     },
 
     shortcuts: {
@@ -142,10 +145,11 @@ export function installApi(): void {
         invoke('streaming_resolve_playback', { source, id, quality }),
       getPlaylist: (source, id) => invoke('streaming_get_playlist', { source, id }),
       getUserPlaylists: (source, userId) => invoke('streaming_get_user_playlists', { source, userId }),
-      getLikedSongs: (source, userId) => invoke('streaming_get_liked_songs', { source, userId }),
+      getCollectedPlaylists: (source, userId) => invoke('streaming_get_collected_playlists', { source, userId }),
       getAlbum: (source, id) => invoke('streaming_get_album', { source, id }),
       getToplist: (topid, limit) => invoke('streaming_get_toplist', { topid, limit }),
-      getDailyRecommend: (source) => invoke('streaming_get_daily_recommend', { source })
+      getRecommendPlaylists: () => invoke('streaming_get_recommend_playlists'),
+      getArtistSongs: (source, artistId, limit, offset) => invoke('streaming_get_artist_songs', { source, artistId, limit, offset: offset ?? 0 })
     },
 
     lyrics: {
@@ -154,8 +158,12 @@ export function installApi(): void {
 
     local: {
       pickDirectories: () => invoke('local_pick_directories'),
-      scanDirectory: (path) => invoke('local_scan_directory', { path }),
+      scanDirectory: (path, maxDepth) => invoke('local_scan_directory', { path, maxDepth: maxDepth ?? null }),
       allowDirectory: (path) => invoke('local_allow_directory', { path })
+    },
+
+    fonts: {
+      import: () => invoke('font_import')
     },
 
     playlist: {

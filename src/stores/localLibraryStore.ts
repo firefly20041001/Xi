@@ -20,6 +20,17 @@ interface LocalLibraryState {
 }
 
 const DIRS_KEY = 'local.dirs'
+const DEPTH_KEY = 'local.scanDepth'
+
+// 扫描深度(0~5,默认 5);取不到/非法按默认值
+const readScanDepth = async (): Promise<number | null> => {
+  try {
+    const v = await window.api.settings.get(DEPTH_KEY, 5)
+    return typeof v === 'number' && v >= 0 && v <= 5 ? Math.floor(v) : 5
+  } catch {
+    return 5
+  }
+}
 
 // 文件名启发:"歌手 - 标题" → artists + name;多歌手按 / 、 & , 分隔
 export function parseLocalName(fileName: string): { name: string; artists: string[] } {
@@ -112,10 +123,11 @@ export const useLocalLibraryStore = create<LocalLibraryState>((set, get) => ({
     window.api.settings.set(DIRS_KEY, next).catch(() => {})
     for (const p of fresh) window.api.local.allowDirectory(p).catch(() => {})
     set({ scanning: true })
+    const depth = await readScanDepth()
     const added: Track[] = []
     for (const p of fresh) {
       try {
-        const files = await window.api.local.scanDirectory(p)
+        const files = await window.api.local.scanDirectory(p, depth)
         added.push(...files.map(toTrack))
       } catch { /* 目录不可读按空处理 */ }
     }
@@ -134,10 +146,11 @@ export const useLocalLibraryStore = create<LocalLibraryState>((set, get) => ({
     const { dirs } = get()
     if (dirs.length === 0) { set({ tracks: [], scanning: false, loaded: true }); return }
     set({ scanning: true })
+    const depth = await readScanDepth()
     const all: Track[] = []
     for (const d of dirs) {
       try {
-        const files = await window.api.local.scanDirectory(d)
+        const files = await window.api.local.scanDirectory(d, depth)
         all.push(...files.map(toTrack))
       } catch { /* 忽略不可读目录 */ }
     }

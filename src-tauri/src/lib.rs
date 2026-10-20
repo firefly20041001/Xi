@@ -1,4 +1,5 @@
 mod accounts;
+mod fonts;
 mod local;
 mod lyrics_win;
 mod net;
@@ -88,6 +89,16 @@ fn lyrics_window_is_visible(app: tauri::AppHandle) -> bool {
 }
 
 #[tauri::command]
+async fn lyrics_window_toggle_lock(app: tauri::AppHandle) {
+    lyrics_win::toggle_lock(&app);
+}
+
+#[tauri::command]
+fn lyrics_window_is_locked(app: tauri::AppHandle) -> bool {
+    lyrics_win::is_locked(&app)
+}
+
+#[tauri::command]
 fn lyrics_settings_get(app: tauri::AppHandle) -> Value {
     lyrics_win::settings(&app)
 }
@@ -98,11 +109,52 @@ fn lyrics_settings_set(app: tauri::AppHandle, key: String, value: Value) {
 }
 
 #[tauri::command]
-fn lyrics_update_line(app: tauri::AppHandle, line: String, translation: Option<String>) {
-    lyrics_win::update_line(&app, line, translation);
+fn lyrics_update_line(
+    app: tauri::AppHandle,
+    line: String,
+    translation: Option<String>,
+    next_line: Option<String>,
+) {
+    lyrics_win::update_line(&app, line, translation, next_line);
 }
 
 // ---------- Settings ----------
+
+// Windows 登录用户名(首页问候语称呼的默认值)
+#[tauri::command]
+fn app_get_windows_username() -> String {
+    std::env::var("USERNAME").unwrap_or_else(|_| String::new())
+}
+
+// 主窗被 × 进托盘后释放 WebView2 内存:提示运行时修剪缓存池/降级合成,
+// JS 与音频照常跑(不用 TrySuspend——那会冻结 JS,托盘切歌/悬浮词同步/歌尾自动切全挂)
+#[tauri::command]
+fn app_set_webview_memory_trimming(window: tauri::WebviewWindow, low: bool) {
+    #[cfg(target_os = "windows")]
+    {
+        use windows_core::Interface;
+        use webview2_com::Microsoft::Web::WebView2::Win32::{
+            COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW,
+            COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL, ICoreWebView2_19,
+        };
+        let _ = window.with_webview(move |webview| {
+            // 运行时过老(无 ICoreWebView2_19)就静默跳过,仅损失省内存效果
+            let controller = webview.controller();
+            if let Ok(core) = unsafe { controller.CoreWebView2() } {
+                if let Ok(w19) = core.cast::<ICoreWebView2_19>() {
+                    let level = if low {
+                        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW
+                    } else {
+                        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL
+                    };
+                    unsafe {
+                        let _ = w19.SetMemoryUsageTargetLevel(level);
+                    }
+                }
+            }
+        });
+    }
+}
 
 #[tauri::command]
 fn settings_get(app: tauri::AppHandle, key: String, default_value: Option<Value>) -> Value {
@@ -269,19 +321,15 @@ async fn streaming_get_user_playlists(
 }
 
 #[tauri::command]
-async fn streaming_get_liked_songs(
+async fn streaming_get_collected_playlists(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     source: String,
     user_id: String,
-) -> Result<Vec<Track>, String> {
-    Ok(providers::get_liked_songs(
-        &state.client,
-        &cookies(&app),
-        &source,
-        &user_id,
-    )
-    .await)
+) -> Result<Vec<Playlist>, String> {
+    providers::get_collected_playlists(&state.client, &cookies(&app), &source, &user_id)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -311,6 +359,54 @@ async fn streaming_get_toplist(
         limit,
     )
     .await)
+}
+
+// 歌手歌曲(搜索页歌手点卡):按平台取热门/高热度歌曲
+#[tauri::command]
+async fn streaming_get_artist_songs(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    source: String,
+    artist_id: String,
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<Track>, String> {
+    providers::get_artist_songs(&state.client, &cookies(&app), &source, &artist_id, limit, offset)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// 推荐歌单(首页快捷卡/推荐歌单页):网易云热门歌单 + QQ音乐推荐歌单(歌单广场-推荐),交错 2:1 合并
+// 免登录可用;两平台各自失败按空处理,另一平台照常展示
+#[tauri::command]
+async fn streaming_get_recommend_playlists(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<Playlist>, String> {
+    let cookie_map = cookies(&app);
+    let cookie = cookie_map.get("netease").map(String::as_str).unwrap_or("");
+    let netease = providers::netease_hot_playlists(&state.client, cookie, 20)
+        .await
+        .unwrap_or_default();
+    let qq = providers::qq_hot_playlists(&state.client, 12)
+        .await
+        .unwrap_or_default();
+    let mut merged: Vec<Playlist> = Vec::with_capacity(netease.len() + qq.len());
+    let mut ni = 0usize;
+    let mut qi = 0usize;
+    while ni < netease.len() || qi < qq.len() {
+        for _ in 0..2 {
+            if ni < netease.len() {
+                merged.push(netease[ni].clone());
+                ni += 1;
+            }
+        }
+        if qi < qq.len() {
+            merged.push(qq[qi].clone());
+            qi += 1;
+        }
+    }
+    Ok(merged)
 }
 
 #[tauri::command]
@@ -482,6 +578,8 @@ pub fn run() {
                 let _ = w.show();
                 let _ = w.unminimize();
                 let _ = w.set_focus();
+                // 二次启动唤起:同步通知前端解除停渲染门(与托盘 show_main 同理)
+                let _ = w.emit("tray:action", serde_json::json!({ "type": "showMain" }));
             }
         }))
                 .on_permission_request(|_app, kind| match kind {
@@ -509,11 +607,15 @@ pub fn run() {
             lyrics_window_hide,
             lyrics_window_toggle,
             lyrics_window_is_visible,
+            lyrics_window_toggle_lock,
+            lyrics_window_is_locked,
             lyrics_settings_get,
             lyrics_settings_set,
             lyrics_update_line,
             settings_get,
             settings_set,
+            app_get_windows_username,
+            app_set_webview_memory_trimming,
             app_set_autolaunch,
             shortcuts_get,
             shortcuts_set,
@@ -523,9 +625,11 @@ pub fn run() {
             streaming_resolve_playback,
             streaming_get_playlist,
             streaming_get_user_playlists,
-            streaming_get_liked_songs,
+            streaming_get_collected_playlists,
             streaming_get_album,
             streaming_get_toplist,
+            streaming_get_recommend_playlists,
+            streaming_get_artist_songs,
             lyrics_get_lyrics,
             playlist_get_all,
             playlist_get_by_id,
@@ -549,6 +653,7 @@ pub fn run() {
             accounts_close_login,
             local::local_pick_directories,
             local::local_scan_directory,
+            fonts::font_import,
             local::local_allow_directory
         ])
         .setup(|app| {

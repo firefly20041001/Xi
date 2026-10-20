@@ -1,5 +1,5 @@
 // 液态玻璃外观状态(移植自 NexBox 的 background/theme-color 上下文):
-// 壁纸模式与模糊、液态玻璃开关、强调色。全部持久化到 localStorage。
+// 壁纸模式与模糊、液态玻璃开关、强调色、全局字体。localStorage 持久化(字体表存 rust settings)。
 import { create } from 'zustand'
 import wall1 from '../../images/wall_1792144628.png'
 import wall2 from '../../images/wall_1792144642.png'
@@ -10,6 +10,8 @@ import wall6 from '../../images/wall_1792314136.png'
 import wall7 from '../../images/wall_1792314138.png'
 import wall8 from '../../images/wall_1792314140.png'
 import wall9 from '../../images/wall_1792314146.png'
+
+import { CustomFont, CUSTOM_FONTS_KEY, loadCustomFonts, registerFontFace } from '../utils/fonts'
 
 export interface WallpaperPreset {
   id: string
@@ -81,6 +83,8 @@ interface AppearanceState {
   liquidGlass: boolean
   glassBlur: number
   accent: string
+  appFont: string // 全局字体键:'default'=MiSans内置 'system'=系统栈 其他=导入字体族名
+  customFonts: CustomFont[] // 导入字体清单(镜像 rust settings 'fonts.custom')
   setWallpaperMode: (m: 'preset' | 'custom') => void
   setPresetId: (id: string) => void
   setCustom: (url: string, name: string) => void
@@ -88,8 +92,22 @@ interface AppearanceState {
   setLiquidGlass: (v: boolean) => void
   setGlassBlur: (v: number) => void
   setAccent: (color: string) => void
+  setAppFont: (key: string) => void
+  setCustomFonts: (list: CustomFont[]) => void
+  initCustomFonts: () => Promise<void>
   init: () => void
   apply: () => void
+}
+
+// 全局字体栈:'default' → 内置 MiSans 优先;'system' → 旧系统栈;导入字体 → 族名在前
+const SYSTEM_FONT_STACK =
+  "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', " +
+  "'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif"
+
+function appFontStack(key: string): string {
+  if (key === 'system') return SYSTEM_FONT_STACK
+  if (!key || key === 'default') return `'MiSans', ${SYSTEM_FONT_STACK}`
+  return `"${key}", 'MiSans', ${SYSTEM_FONT_STACK}`
 }
 
 function persist(state: AppearanceState) {
@@ -102,7 +120,8 @@ function persist(state: AppearanceState) {
       backgroundBlur: state.backgroundBlur,
       liquidGlass: state.liquidGlass,
       glassBlur: state.glassBlur,
-      accent: state.accent
+      accent: state.accent,
+      appFont: state.appFont
     })
   )
 }
@@ -137,8 +156,8 @@ function applyToDom(s: AppearanceState) {
   }
   // 歌曲列表背板浓度与模糊统一由「玻璃模糊度」派生:
   // 模糊共用 --nb-glass-blur(见 pages.css .track-list),底色 alpha 随 glassBlur 线性变化
-  // (18px 默认 ≈0.27,4px 近乎无背板,40px 最浓 ≈0.6);液态玻璃关闭时实底与面板一致
-  const maskAlpha = (Math.min(40, Math.max(4, s.glassBlur)) / 40) * 0.6
+  // (18px 默认 ≈0.27,0px 无磨砂且无背板,40px 最浓 ≈0.6);液态玻璃关闭时实底与面板一致
+  const maskAlpha = (Math.min(40, Math.max(0, s.glassBlur)) / 40) * 0.6
   const listBg = !s.liquidGlass
     ? (scheme === 'dark' ? 'rgba(24, 24, 28, 0.97)' : 'rgba(255, 255, 255, 0.97)')
     : (scheme === 'dark' ? `rgba(0, 0, 0, ${maskAlpha})` : `rgba(255, 255, 255, ${maskAlpha})`)
@@ -149,6 +168,8 @@ function applyToDom(s: AppearanceState) {
   root.style.setProperty('--nb-accent-hover', darken(accent, 0.86))
   root.style.setProperty('--nb-accent-contrast', contrastFor(accent))
   root.style.setProperty('--nb-accent-soft', soft(accent, 0.12))
+  // 全局字体栈(body 与组件都引用 var(--app-font);global.css 里给同名默认值)
+  root.style.setProperty('--app-font', appFontStack(s.appFont))
 }
 
 function contrastFor(hex: string): string {
@@ -169,6 +190,8 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => ({
   liquidGlass: true,
   glassBlur: 18,
   accent: DEFAULT_ACCENT,
+  appFont: 'default',
+  customFonts: [],
 
   setWallpaperMode: (m) => {
     set({ wallpaperMode: m })
@@ -205,6 +228,23 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => ({
     persist(get())
     get().apply()
   },
+  setAppFont: (key) => {
+    set({ appFont: key })
+    persist(get())
+    get().apply()
+  },
+  setCustomFonts: (list) => {
+    set({ customFonts: list })
+    for (const f of list) registerFontFace(f.name, f.path)
+    persist(get())
+    get().apply()
+  },
+  initCustomFonts: async () => {
+    const list = await loadCustomFonts()
+    set({ customFonts: list })
+    for (const f of list) registerFontFace(f.name, f.path)
+    get().apply()
+  },
 
   init: () => {
     try {
@@ -228,7 +268,8 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => ({
           backgroundBlur: saved.backgroundBlur ?? 0,
           liquidGlass: saved.liquidGlass ?? true,
           glassBlur: saved.glassBlur ?? 18,
-          accent
+          accent,
+          appFont: typeof saved.appFont === 'string' ? saved.appFont : 'default'
         })
         // 归一化结果回写,避免存储中残留废弃值
         persist(get())
@@ -236,6 +277,8 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => ({
     } catch {
       /* ignore */
     }
+    // 导入字体清单存在 rust settings:异步补载并注册 @font-face(主窗全局字体可用)
+    void get().initCustomFonts()
     new MutationObserver(() => get().apply()).observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['data-theme']

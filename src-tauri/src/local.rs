@@ -33,20 +33,28 @@ fn is_audio(p: &Path) -> bool {
 }
 
 /// 递归扫描目录(跳过隐藏目录),返回音频文件列表
+/// max_depth:向下递归的层数上限(0=仅所选目录本身,1~5=再多 n 层);不传=不限制(兼容旧调用)
 #[tauri::command]
-pub async fn local_scan_directory(path: String) -> Result<Vec<LocalFileInfo>, String> {
+pub async fn local_scan_directory(
+    path: String,
+    max_depth: Option<i64>,
+) -> Result<Vec<LocalFileInfo>, String> {
     let root = PathBuf::from(&path);
     if !root.is_dir() {
         return Err("目录不存在".into());
     }
+    let max_depth: usize = match max_depth {
+        None => usize::MAX,
+        Some(d) => d.clamp(0, 5) as usize,
+    };
     let root_name = root
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("本地目录")
         .to_string();
-    let mut stack = vec![root];
+    let mut stack: Vec<(PathBuf, usize)> = vec![(root, 0)]; // (目录, 深度:根=0)
     let mut out: Vec<LocalFileInfo> = Vec::new();
-    while let Some(dir) = stack.pop() {
+    while let Some((dir, depth)) = stack.pop() {
         let entries = match std::fs::read_dir(&dir) {
             Ok(e) => e,
             Err(_) => continue,
@@ -55,9 +63,9 @@ pub async fn local_scan_directory(path: String) -> Result<Vec<LocalFileInfo>, St
             let p = entry.path();
             let name = entry.file_name().to_string_lossy().into_owned();
             if p.is_dir() {
-                // 跳过隐藏目录(.开头)
-                if !name.starts_with('.') {
-                    stack.push(p);
+                // 跳过隐藏目录(.开头);深度达到上限就不再下钻
+                if !name.starts_with('.') && depth < max_depth {
+                    stack.push((p, depth + 1));
                 }
             } else if is_audio(&p) && out.len() < MAX_FILES {
                 let modified_ms = entry

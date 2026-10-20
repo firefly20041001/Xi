@@ -24,12 +24,21 @@ pub fn set_setting(app: &AppHandle, key: &str, value: Value) {
         if let Some(w) = app.get_webview_window("lyrics") {
             let _ = w.set_ignore_cursor_events(locked);
         }
+        // 托盘玻璃菜单据此刷新「锁定桌面歌词」徽章(托盘/悬浮窗/设置页共用同一真值)
+        let _ = app.emit("tray:lyrics-locked", locked);
     }
     if key == "enabled" {
         if locked {
             hide(app);
         }
         notify_state(app, enabled && is_visible(app));
+    } else {
+        // 其它设置项也要即时生效:快照推给悬浮窗(实时套用),
+        // 并广播给设置页/托盘同步(此前普通项从不广播,改完要重开窗口才生效)
+        if let Some(w) = app.get_webview_window("lyrics") {
+            let _ = w.emit("lyrics:settings", settings(app));
+        }
+        let _ = app.emit("lyrics-settings:changed", settings(app));
     }
 }
 
@@ -83,8 +92,13 @@ fn create(app: &AppHandle) -> tauri::Result<()> {
         }
         tauri::WindowEvent::Resized(size) => {
             let PhysicalSize { width, height } = size;
-            store::set_setting(&handle, "lyrics.width", json!(width));
-            store::set_setting(&handle, "lyrics.height", json!(height));
+            // 存逻辑单位:create() 传给 inner_size 的是逻辑值,直接存物理像素在 DPI≠100% 时会被二次缩放
+            let sf = handle
+                .get_webview_window("lyrics")
+                .and_then(|w| w.scale_factor().ok())
+                .unwrap_or(1.0);
+            store::set_setting(&handle, "lyrics.width", json!(*width as f64 / sf));
+            store::set_setting(&handle, "lyrics.height", json!(*height as f64 / sf));
         }
         tauri::WindowEvent::Destroyed => {
             // 直接关窗（✕/系统级）也同步托盘徽章
@@ -149,9 +163,30 @@ pub fn is_visible(app: &AppHandle) -> bool {
         .unwrap_or(false)
 }
 
-pub fn update_line(app: &AppHandle, line: String, translation: Option<String>) {
+// 锁定切换(托盘用):读存档翻转,经 set_setting 统一持久化+应用+广播
+pub fn toggle_lock(app: &AppHandle) {
+    let locked = is_locked(app);
+    set_setting(app, "locked", json!(!locked));
+}
+
+pub fn is_locked(app: &AppHandle) -> bool {
+    settings(app)
+        .get("locked")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+}
+
+pub fn update_line(
+    app: &AppHandle,
+    line: String,
+    translation: Option<String>,
+    next: Option<String>,
+) {
     if let Some(w) = app.get_webview_window("lyrics") {
-        let _ = w.emit("lyrics:update", json!({ "line": line, "translation": translation }));
+        let _ = w.emit(
+            "lyrics:update",
+            json!({ "line": line, "translation": translation, "next": next }),
+        );
     }
 }
 

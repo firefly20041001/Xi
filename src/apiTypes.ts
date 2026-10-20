@@ -43,13 +43,15 @@ export interface ElectronAPI {
     onUpdate: (callback: (data: { line: string; translation?: string }) => void) => void
     onSettings: (callback: (settings: any) => void) => void
     onSettingsChanged: (callback: (settings: any) => void) => void
-    updateLine: (line: string, translation?: string) => void
+    updateLine: (line: string, translation?: string, next?: string) => void
   }
 
   settings: {
     get: (key: string, defaultValue?: any) => Promise<any>
     set: (key: string, value: any) => Promise<void>
     setAutoLaunch: (enabled: boolean) => Promise<boolean>
+    getWindowsUsername: () => Promise<string>
+    setWebviewMemoryTrimming: (low: boolean) => Promise<void>
   }
 
   shortcuts: {
@@ -87,9 +89,11 @@ export interface ElectronAPI {
     resolvePlayback: (source: MusicSource, id: string, quality: QualityLevel) => Promise<PlaybackInfo>
     getPlaylist: (source: MusicSource, id: string) => Promise<Playlist>
     getUserPlaylists: (source: MusicSource, userId: string) => Promise<Playlist[]>
-    getLikedSongs: (source: MusicSource, userId: string) => Promise<Track[]>
+    getCollectedPlaylists: (source: MusicSource, userId: string) => Promise<Playlist[]>
     getAlbum: (source: MusicSource, id: string) => Promise<Album>
     getToplist: (topid: number, limit: number) => Promise<Track[]>
+    getRecommendPlaylists: () => Promise<Playlist[]>
+    getArtistSongs: (source: MusicSource, artistId: string, limit: number, offset?: number) => Promise<Track[]>
   }
 
   lyrics: {
@@ -98,8 +102,12 @@ export interface ElectronAPI {
 
   local: {
     pickDirectories: () => Promise<string[]>
-    scanDirectory: (path: string) => Promise<LocalFileInfo[]>
+    scanDirectory: (path: string, maxDepth?: number | null) => Promise<LocalFileInfo[]>
     allowDirectory: (path: string) => Promise<void>
+  }
+
+  fonts: {
+    import: () => Promise<{ name: string; path: string } | null>
   }
 
   playlist: {

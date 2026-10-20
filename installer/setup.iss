@@ -4,7 +4,7 @@
 
 #define MyAppName "希 Xi"
 #define MyAppNameCN "希"
-#define MyAppVersion "3.1.9"
+#define MyAppVersion "3.2.0"
 #define MyAppPublisher "firefly20041001"
 #define MyAppExeName "xi.exe"
 #define ReleaseDir "..\src-tauri\target\release"

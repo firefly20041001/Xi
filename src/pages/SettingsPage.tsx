@@ -211,7 +211,7 @@ export function SettingsPage() {
     setCheckingUpdate(true)
     setUpdateStatus('检查中...')
     try {
-      const res = await fetch('https://api.github.com/repos/firefly20041001/yachiyo/releases/latest')
+      const res = await fetch('https://api.github.com/repos/firefly20041001/Xi/releases/latest')
       const data = await res.json()
       const latestVersion = (data.tag_name || '').replace('v', '').replace('V', '')
 

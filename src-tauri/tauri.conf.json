@@ -1,40 +1,36 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "xi",
-  "version": "3.1.9",
-  "identifier": "com.yachiyo.app",
-  "build": {
-    "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:5180",
-    "beforeBuildCommand": "pnpm build",
-    "frontendDist": "../dist"
-  },
-  "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "希",
-        "width": 1400,
-        "height": 900,
-        "minWidth": 1000,
-        "minHeight": 700,
-        "center": true,
-        "decorations": false,
-        "visible": false,
-        "additionalBrowserArgs": "--autoplay-policy=no-user-gesture-required --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"
-      }
-    ],
-    "security": {
-      "csp": null,
-      "assetProtocol": {
-        "enable": true,
-        "scope": []
-      }
-    }
-  },
-  "bundle": {
-    "active": true,
-    "targets": ["nsis"],
-    "icon": ["icons/icon.ico", "icons/icon.png"]
-  }
+    "$schema":  "https://schema.tauri.app/config/2",
+    "productName":  "xi",
+    "version":  "3.1.9",
+    "identifier":  "com.yachiyo.app",
+    "build":  {
+                  "beforeDevCommand":  "pnpm dev",
+                  "devUrl":  "http://localhost:5180",
+                  "beforeBuildCommand":  "pnpm build",
+                  "frontendDist":  "../dist"
+              },
+    "app":  {
+                "windows":  [
+
+                            ],
+                "security":  {
+                                 "csp":  null,
+                                 "assetProtocol":  {
+                                                       "enable":  true,
+                                                       "scope":  [
+
+                                                                 ]
+                                                   }
+                             }
+            },
+    "bundle":  {
+                   "active":  true,
+                   "targets":  [
+                                   "nsis"
+                               ],
+                   "icon":  [
+                                "icons/icon.ico",
+                                "icons/icon.png"
+                            ]
+               }
 }

@@ -56,7 +56,7 @@ fn create(app: &AppHandle) -> tauri::Result<()> {
     let mut builder = WebviewWindowBuilder::new(
         app,
         "lyrics",
-        WebviewUrl::App("lyrics.html".into()),
+        WebviewUrl::External(crate::web_page_url("lyrics.html")),
     )
     .title("希 歌词")
     .inner_size(width, height)

@@ -28,6 +28,11 @@ regex = "1"
 base64 = "0.22"
 sha1 = "0.10"
 
+[features]
+# 正式版打包必须启用(内嵌前端资源,彻底脱离 vite dev):
+#   cargo build --release --features custom-protocol
+custom-protocol = ["tauri/custom-protocol"]
+
 # Windows 专用:隐藏主窗时让 WebView2 修剪缓存(MemoryUsageTargetLevel)
 # 版本号必须与 tauri 所用 webview2-com 一致,COM 接口才能互通
 [target.'cfg(target_os = "windows")'.dependencies]

@@ -21,6 +21,68 @@ pub struct AppState {
     pub client: reqwest::Client,
 }
 
+// ---------- 前端页 URL(开发= vite devUrl;正式= app:// 盘上文件优先) ----------
+
+// 本地前端页完整 URL(按散装分发优先的原则):
+// 1) exe 旁有 app/index.html → app://localhost/(协议处理器读盘上 app/ 目录)
+// 2) 没有盘上目录但处于开发构建(cfg dev) → vite dev 服务器(5180,热更快)
+// 3) 兜底 → 仍指 app://(构建时若启用了 custom-protocol,协议处理器回退内嵌资源)
+pub fn web_page_url(page: &str) -> tauri::Url {
+    let disk_ok = std::env::current_exe().ok().and_then(|p| {
+        p.parent().map(|d| d.join("app").join("index.html").is_file())
+    });
+    if disk_ok != Some(true) && cfg!(dev) {
+        tauri::Url::parse(&format!("http://localhost:5180/{page}")).unwrap()
+    } else {
+        tauri::Url::parse(&format!("app://localhost/{page}")).unwrap()
+    }
+}
+
+fn mime_of(path: &std::path::Path) -> &'static str {
+    match path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("html") => "text/html; charset=utf-8",
+        Some("js") | Some("mjs") => "text/javascript; charset=utf-8",
+        Some("css") => "text/css; charset=utf-8",
+        Some("json") | Some("map") => "application/json",
+        Some("woff") => "font/woff",
+        Some("woff2") => "font/woff2",
+        Some("ttf") => "font/ttf",
+        Some("otf") => "font/otf",
+        Some("png") => "image/png",
+        Some("jpg") | Some("jpeg") => "image/jpeg",
+        Some("webp") => "image/webp",
+        Some("gif") => "image/gif",
+        Some("svg") => "image/svg+xml",
+        Some("ico") => "image/x-icon",
+        Some("txt") => "text/plain; charset=utf-8",
+        _ => "application/octet-stream",
+    }
+}
+
+// %XX 解码(路径段内);'+' 保持字面
+fn pct_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%' && i + 2 < b.len() {
+            if let Ok(v) = u8::from_str_radix(&s[i + 1..i + 3], 16) {
+                out.push(v);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(b[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
 fn cookies(app: &tauri::AppHandle) -> HashMap<String, String> {
     playlist::accounts_cookie_map(app)
 }
@@ -594,6 +656,42 @@ pub fn run() {
         // 本地音乐目录选择器:必须注册对话框插件,否则 DialogExt.app.dialog() 会 panic
         // (state() called before manage() for tauri_plugin_dialog::desktop::Dialog)
         .plugin(tauri_plugin_dialog::init())
+        // app:// 前端资源协议(同根目录文件优先,内嵌回退):托盘/主窗/歌词窗共用
+        .register_uri_scheme_protocol("app", |ctx, request| {
+            let uri_path = request.uri().path().to_string();
+            let rel = pct_decode(uri_path.trim_start_matches('/'));
+            // 防越界:含 .. 段一律 404
+            let file = std::env::current_exe().ok().and_then(|p| {
+                p.parent().map(|d| d.join("app").join(rel.replace('\\', "/")))
+            });
+            let safe = file.as_ref().is_some_and(|f| {
+                f.components().all(|c| !matches!(c, std::path::Component::ParentDir))
+            });
+            if safe {
+                if let Ok(data) = std::fs::read(file.as_ref().unwrap()) {
+                    return tauri::http::Response::builder()
+                        .header("Content-Type", mime_of(file.as_ref().unwrap()))
+                        .body(std::borrow::Cow::Owned(data))
+                        .unwrap();
+                }
+            }
+            // 回退:内嵌资源(custom-protocol 特性构建时打入)
+            let resolver = ctx.app_handle().asset_resolver();
+            if let Some(asset) = resolver.get(uri_path.clone()) {
+                let resp = tauri::http::Response::builder()
+                    .header("Content-Type", asset.mime_type.clone());
+                let resp = match &asset.csp_header {
+                    Some(csp) => resp.header("Content-Security-Policy", csp.clone()),
+                    None => resp,
+                };
+                return resp.body(std::borrow::Cow::Owned(asset.bytes)).unwrap();
+            }
+            tauri::http::Response::builder()
+                .status(404)
+                .header("Content-Type", "text/plain; charset=utf-8")
+                .body(std::borrow::Cow::Owned(b"not found".to_vec()))
+                .unwrap()
+        })
         .manage(AppState {
             client: net::new_client(),
         })
@@ -657,6 +755,24 @@ pub fn run() {
             local::local_allow_directory
         ])
         .setup(|app| {
+            // 主窗:由 Rust 创建(conf 只声明窗口清单为空)——
+            // 开发构建指向 vite devUrl 热更;正式构建 app://localhost/,协议处理器
+            // 盘上 app/ 目录优先、内嵌回退(见 register_uri_scheme_protocol)
+            let _ = tauri::WebviewWindowBuilder::new(
+                app,
+                "main",
+                tauri::WebviewUrl::External(web_page_url("index.html")),
+            )
+            .title("希")
+            .inner_size(1400.0, 900.0)
+            .min_inner_size(1000.0, 700.0)
+            .center()
+            .decorations(false)
+            .visible(false)
+            .additional_browser_args(
+                "--autoplay-policy=no-user-gesture-required --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection",
+            )
+            .build();
             // Restore auto-launch preference
             if store::get_setting(app.handle(), "autoLaunch")
                 .and_then(|v| v.as_bool())
@@ -691,7 +807,7 @@ pub fn run() {
                 let _tray_menu = tauri::WebviewWindowBuilder::new(
                     app,
                     "tray-menu",
-                    tauri::WebviewUrl::App("tray.html".into()),
+                    tauri::WebviewUrl::External(web_page_url("tray.html")),
                 )
                 .title("希 菜单")
                 .inner_size(240.0, 372.0)

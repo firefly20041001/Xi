@@ -12,3 +12,6 @@ src-tauri/gen
 # scripts ç›®å½•é‡Œçš„ä¸€æ¬¡æ€§è°ƒè¯•/éªŒè¯è„šæœ¬,ä¸å…¥åº“(ä¿ç•™æ—¢æœ‰ smoke-test.mjs)
 scripts/*
 !scripts/smoke-test.mjs
+
+# ´ò°ü²úÎï(Inno Êä³ö,±¾µØÉú³É)
+release/

@@ -392,9 +392,6 @@ export function SettingsPage() {
                       <button className="btn btn-ghost btn-sm" onClick={loadAudioDevices} style={{ marginTop: 4 }}>
                         <RefreshCw size={14} /> 刷新设备列表
                       </button>
-                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
-                        💡 切换设备后切歌生效
-                      </span>
                     </div>
                   </div>
                 )}
